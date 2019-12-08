@@ -25,6 +25,7 @@ const namek = "316988662799925249";
 const io = "575399619140255779";
 var menzionare = true;
 var tagTime = 60;
+var pingRole;
 
 
 function eliminazioneMess(message, msg)//funzione per eliminare il messaggio di risposta
@@ -228,7 +229,7 @@ client.on('message', async (message) =>{
           }
 
           message.delete();
-          let pingRole = message.member.guild.roles.find(role => role.name === ruolo);
+          pingRole = message.member.guild.roles.find(role => role.name === ruolo);
           await pingRole.setMentionable(true);
           await new Promise(resolve => setTimeout(resolve, 1000));
           message.channel.send("Hey, c'è una novità! <@&653169410978086923>");
@@ -252,7 +253,7 @@ client.on('message', async (message) =>{
             return;
           }
           
-          let pingRole = message.member.guild.roles.find(role => role.name === ruolo);
+          pingRole = message.member.guild.roles.find(role => role.name === ruolo);
           await pingRole.setMentionable(true);
           await new Promise(resolve => setTimeout(resolve, 1000));
           message.channel.send("Is anyone here? <@&643897224501264394>");
