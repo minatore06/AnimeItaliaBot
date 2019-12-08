@@ -248,7 +248,7 @@ client.on('message', async (message) =>{
           }
 
           if(!menzionare){
-            message.reply("C'è un luogo e un momento per ogni cosa! Ma non ora.(tra "+tagTime+" minuti").then(msg=>
+            message.reply("C'è un luogo e un momento per ogni cosa! Ma non ora.(tra "+tagTime+" minuti)").then(msg=>
               eliminazioneMess(message,msg));
             return;
           }
@@ -259,6 +259,7 @@ client.on('message', async (message) =>{
           message.channel.send("Is anyone here? <@&643897224501264394>");
           await new Promise(resolve => setTimeout(resolve, 1000));
           pingRole.setMentionable(false);
+          message.delete();
 
           tagTime = 60;
           menzionare = false;
