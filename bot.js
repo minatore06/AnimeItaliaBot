@@ -217,6 +217,25 @@ client.on('message', async (message) =>{
           }
           break;
             
+        case prefix+'news':
+          ruolo = "news";
+
+          if(permissionLevel<4){
+            message.reply("Nope, you can't do that").then(msg=>
+              eliminazioneMess(message,msg)
+            );
+            return;          
+          }
+
+          message.delete();
+          let pingRole = message.member.guild.roles.find(role => role.name === ruolo);
+          await pingRole.setMentionable(true);
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          message.channel.send("Hey, c'è una novità! <@&653169410978086923>");
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          pingRole.setMentionable(false);
+          break;
+
         case prefix+'speaker':
           ruolo = "speaker";
 
@@ -228,7 +247,7 @@ client.on('message', async (message) =>{
           }
 
           if(!menzionare){
-            message.reply("C'è un luogo e un momento per ogni cosa! Ma non ora.(tra "+tagTime+" minuti)").then(msg=>
+            message.reply("C'è un luogo e un momento per ogni cosa! Ma non ora.(tra "+tagTime+" minuti").then(msg=>
               eliminazioneMess(message,msg));
             return;
           }
