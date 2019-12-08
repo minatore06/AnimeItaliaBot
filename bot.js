@@ -24,6 +24,7 @@ var entrate3 = 0;
 const namek = "316988662799925249";
 const io = "575399619140255779";
 var menzionare = true;
+var tagTime = 60;
 
 
 function eliminazioneMess(message, msg)//funzione per eliminare il messaggio di risposta
@@ -216,18 +217,18 @@ client.on('message', async (message) =>{
           }
           break;
             
-        case prefix+'cacca':
-          ruolo = "cacca";
+        case prefix+'speaker':
+          ruolo = "speaker";
 
           if(!message.member.roles.some(r=>ruolo.includes(r.name))){
-            message.reply("You can't do that").then(msg=>
+            message.reply("Devi avere il ruolo speaker per taggare speaker").then(msg=>
               eliminazioneMess(message,msg)
             );
             return;
           }
 
           if(!menzionare){
-            message.reply("C'è un luogo e un momento per ogni cosa! Ma non ora.").then(msg=>
+            message.reply("C'è un luogo e un momento per ogni cosa! Ma non ora.(tra "+tagTime+" minuti)").then(msg=>
               eliminazioneMess(message,msg));
             return;
           }
@@ -239,10 +240,16 @@ client.on('message', async (message) =>{
           await new Promise(resolve => setTimeout(resolve, 1000));
           pingRole.setMentionable(false);
 
+          tagTime = 60;
           menzionare = false;
+
+          let tagInterval = setInterval(function(){
+            tagTime--;
+          }, ms("1m"));
+
           setTimeout(function(){
-            menzionare=true
-            message.reply('buono puzza!!!')
+            menzionare=true;
+            clearInterval(tagInterval);
           }, ms("1h"))
           break;
           
@@ -298,53 +305,6 @@ client.on('message', async (message) =>{
             });
           });
           
-          break;
-          
-        case prefix +'countdown':
-            message.guild.createChannel("work-in-progress", {type:'text'}).then(stanza => {
-            stanza.send("```𝓣𝓮𝓶𝓹𝓸 𝓻𝓲𝓶𝓪𝓼𝓽𝓸: 5𝓱```").then(msg => {
-              var tempo = 0;
-              
-              if(tempo==0)
-              {
-                msg.edit("```𝓣𝓮𝓶𝓹𝓸 𝓻𝓲𝓶𝓪𝓼𝓽𝓸: 5𝓱```")
-                tempo = 4
-                var interval = setInterval(function(){
-                  msg.edit("```𝓣𝓮𝓶𝓹𝓸 𝓻𝓲𝓶𝓪𝓼𝓽𝓸: " + tempo + '𝓱```');
-                  tempo-=1;
-                  
-                  if(tempo==0)
-                  {
-                    clearInterval(interval)
-                    msg.edit("```𝓣𝓮𝓶𝓹𝓸 𝓻𝓲𝓶𝓪𝓼𝓽𝓸: 60𝓶```")
-                    tempo = 59
-                    interval = setInterval(function(){
-                      msg.edit("```𝓣𝓮𝓶𝓹𝓸 𝓻𝓲𝓶𝓪𝓼𝓽𝓸: " + tempo + '𝓶```');
-                      tempo-=1;
-                      
-                      if(tempo==0)
-                      {
-                        clearInterval(interval)
-                        msg.edit("```𝓣𝓮𝓶𝓹𝓸 𝓻𝓲𝓶𝓪𝓼𝓽𝓸: 60𝓼```")
-                        tempo = 59
-                        interval = setInterval(function(){
-                          msg.edit("```𝓣𝓮𝓶𝓹𝓸 𝓻𝓲𝓶𝓪𝓼𝓽𝓸: " + tempo + '𝓼```');
-                          tempo-=1;
-                          
-                          if(tempo==0)
-                          {
-                            clearInterval(interval);
-                            msg.channel.send("@everyone");
-                            msg.delete();
-                          }
-                        }, ms('1s'))
-                      }
-                    }, ms('1m'))
-                  }
-                }, ms('1h'))
-              }
-            })
-          })
           break;
           
         case prefix + 'unmagic':
