@@ -91,7 +91,7 @@ client.on('message', async (message) =>{
   if(cmd.split("").slice(0,2).join('')==prefix+'d'){
     var n = cmd.split("").slice(2).join('');
     if(n==""||n==" ")return message.reply("Nessun numero inserito").then(msg=>eliminazioneMess(message, msg));
-    message.channel.send(Math.floor(Math.random()*(n-1)+1));
+    message.channel.send(Math.floor(Math.random()*(n))+1);
     return;
   }
   
