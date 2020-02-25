@@ -87,6 +87,13 @@ client.on('message', async (message) =>{
     else if(message.member.roles.some(r=>"💠VIP💠".includes(r.name))) permissionLevel = 1; //lv 1 = vip
     else permissionLevel = 0; //lv 0 = everyone
   }
+
+  if(cmd.split("").slice(0,2).join('')==prefix+'d'){
+    var n = cmd.split("").slice(2).join('');
+    if(n==""||n==" ")return message.reply("Nessun numero inserito").then(msg=>eliminazioneMess(message, msg));
+    message.channel.send(Math.floor(Math.random()*(n-1)+1));
+    return;
+  }
   
   try{
     switch(cmd)
@@ -248,7 +255,7 @@ client.on('message', async (message) =>{
           }
 
           if(!menzionare){
-            message.reply("C'è un luogo e un momento per ogni cosa! Ma non ora.(tra "+tagTime+" minuti)").then(msg=>
+            message.reply("C'è un luogo e un momento per ogni cosa! Ma non ora.(tra "+tagTime+" minuti").then(msg=>
               eliminazioneMess(message,msg));
             return;
           }
