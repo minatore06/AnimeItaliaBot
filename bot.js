@@ -391,6 +391,7 @@ client.on('message', async (message) =>{
                     voiceChan.join().then(() => {
                       message.channel.send('Sono arrivato').catch(error => message.channel.send(error));
                     }).catch(error => message.channel.send(error));
+                }
             }
             break;
       
