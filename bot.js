@@ -9,6 +9,7 @@ const { Client, Attachment, RichEmbed } = require('discord.js');
 const client = new Discord.Client();
 
 const config = require("./config.json");
+var xp = require("./xp.json");
 const bOwner = config.ownerID;
 const prefix = config.prefix;
 const token = config.token;
@@ -41,6 +42,21 @@ function wait(ms){
     return new Promise(resolve=>{
         setTimeout(resolve,ms)
     })
+}
+
+function levelUp(message, utente){
+  let lvlEmbed = new Discord.RichEmbed()
+    .setAuthor(utente.username)
+    .setColor('#14c5a2')
+    .addField('Level', xp[utente.id].level, true)
+    .addField('XP', xp[utente.id].xp, true)
+    .setFooter(Math.floor(xp[utente.id].level*100*Math.PI)-xp[utente.id].xp+" XP per il prossimo livello", utente.displayAvatarURL);
+
+  message.channel.send(lvlEmbed).then(msg => {
+    msg.delete(10000)
+    message.delete(5000)
+  });
+  
 }
 
 client.on('ready', () => {
@@ -359,6 +375,56 @@ client.on('message', async (message) =>{
 	          var binario = x.toString(2);
             message.reply("il numero ''" + x + "'' in binario è '' " + binario + "''");
           }
+      
+          case prefix+'level':
+            let utente = message.mentions.users.first();
+            if(!argresult) utente = message.author;
+            levelUp(message, utente);
+            break;
+      }  
+  
+  
+      //////////////////////////////////LEVEL SYSYEM//////////////////////////////////////////
+      if(!message.author.bot){
+        if(!xp[message.author.id]){
+          xp[message.author.id] = {
+            xp: 0,
+            level: 1
+          };
+        }
+        if (talkedRecently.has(message.author.id)) {
+            return;
+          } else {
+            let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI)/8;
+            
+            xp[message.author.id].xp+=Math.floor(Math.random() * (20-5+1)) + 5;
+            
+            if(xp[message.author.id].xp>=nextLvXp){
+              xp[message.author.id].level++;
+              
+              let lvlEmbed = new Discord.RichEmbed()
+                .setAuthor(message.author.username)
+                .setColor('#82c394')
+                .addField("Congratulazioni", "Sei appena salito di livello, ora sei al lv: "+xp[message.author.id].level, true)
+                .setFooter(Math.floor(xp[message.author.id].level*100*Math.PI)-xp[message.author.id].xp+" XP per il prossimo livello", message.author.displayAvatarURL);
+                message.channel.send(lvlEmbed).then(msg => {
+                  msg.delete(10000)
+                });
+            }
+    
+    
+            fs.writeFile("./xp.json", JSON.stringify(xp), (err) => {
+              if(err) message.channel.send(err)
+            });
+            // Adds the user to the set so that they can't talk for a minute
+            talkedRecently.add(message.author.id);
+            setTimeout(() => {
+              // Removes the user from the set after a minute
+              talkedRecently.delete(message.author.id);
+            }, 60000);
+          }
+        
+    
       }
   }
   
