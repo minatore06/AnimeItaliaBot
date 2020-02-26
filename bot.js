@@ -13,6 +13,7 @@ var xp = require("./xp.json");
 const bOwner = config.ownerID;
 const prefix = config.prefix;
 const token = config.token;
+const talkedRecently = new Set();
 var permissionLevel = 0;
 var tempoMute = [[]];
 var tempoOnMin = 1000;
