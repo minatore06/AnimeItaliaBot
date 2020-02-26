@@ -376,6 +376,24 @@ client.on('message', async (message) =>{
 	          var binario = x.toString(2);
             message.reply("il numero ''" + x + "'' in binario è '' " + binario + "''");
           }
+
+          case prefix+'join':
+            if (!message.guild) return;
+            if (message.member.id!=bOwner) return;
+            else {
+                let voiceChan = message.member.voiceChannel;
+                if (!voiceChan || voiceChan.type !== 'voice') {
+                    message.channel.send('No').catch(error => message.channel.send(error));
+                } else if (message.guild.voiceConnection) {
+                    message.channel.send('Hey tu, sono gia\' in una vocale');
+                } else {
+                    message.channel.send('Joining...').then(() => {
+                      voiceChan.join().then(() => {
+                        message.channel.send('Sono arrivato').catch(error => message.channel.send(error));
+                      }).catch(error => message.channel.send(error));
+                    }).catch(error => message.channel.send(error));
+                }
+            }
       
           case prefix+'level':
             let utente = message.mentions.users.first();
@@ -396,7 +414,7 @@ client.on('message', async (message) =>{
         if (talkedRecently.has(message.author.id)) {
             return;
           } else {
-            let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI)/8;
+            let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI)/6;
             
             xp[message.author.id].xp+=Math.floor(Math.random() * (20-5+1)) + 5;
             
