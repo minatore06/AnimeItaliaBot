@@ -387,9 +387,9 @@ client.on('message', async (message) =>{
                 } else if (message.guild.voiceConnection) {
                     message.channel.send('Hey tu, sono gia\' in una vocale');
                 } else {
-                    message.channel.send('Joining...')
+                    message.channel.send('Joining...');
                     voiceChan.join().then(() => {
-                      message.channel.send('Sono arrivato').catch(error => message.channel.send(error));
+                      message.channel.send('Sono arrivato');
                     }).catch(error => message.channel.send(error));
                 }
             }
