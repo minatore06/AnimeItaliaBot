@@ -388,7 +388,7 @@ client.on('message', async (message) =>{
                     message.channel.send('Hey tu, sono gia\' in una vocale');
                 } else {
                     message.channel.send('Joining...');
-                    voiceChan.join();
+                    voiceChan.join().then(connection => message.channel.send("Entrato"));
                 }
             }
             break;
