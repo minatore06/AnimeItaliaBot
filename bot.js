@@ -14,6 +14,8 @@ const bOwner = config.ownerID;
 const prefix = config.prefix;
 const token = config.token;
 const talkedRecently = new Set();
+const lvRoles = {0:'682658762393518251', 5:'682658760208023570', 10:'682658757943361561', 20:'682658755824844846', 30:'682658749961601028'}
+
 var permissionLevel = 0;
 var tempoMute = [[]];
 var tempoOnMin = 1000;
@@ -412,13 +414,18 @@ client.on('message', async (message) =>{
         if (talkedRecently.has(message.author.id)) {
             return;
           } else {
-            let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI)/6;
+            let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI)/2;
             
             xp[message.author.id].xp+=Math.floor(Math.random() * (20-5+1)) + 5;
             
             if(xp[message.author.id].xp>=nextLvXp){
               xp[message.author.id].level++;
-              
+              for(var key in lvRoles){
+                if(lvRoles[key]){
+                  message.member.addRole(client.message.guild.roles.get(lvRoles[key]));
+                }
+              }
+
               let lvlEmbed = new Discord.RichEmbed()
                 .setAuthor(message.author.username)
                 .setColor('#82c394')
