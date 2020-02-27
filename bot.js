@@ -53,7 +53,7 @@ function levelUp(message, utente){
     .setColor('#14c5a2')
     .addField('Level', xp[utente.id].level, true)
     .addField('XP', xp[utente.id].xp, true)
-    .setFooter(Math.floor(xp[utente.id].level*100*Math.PI)-xp[utente.id].xp+" XP per il prossimo livello", utente.displayAvatarURL);
+    .setFooter(Math.floor(xp[utente.id].level*100*Math.PI)+Math.floor((xp[utente.id].level-1)*100*Math.PI/2)-xp[utente.id].xp+" XP per il prossimo livello", utente.displayAvatarURL);
 
   message.channel.send(lvlEmbed).then(msg => {
     msg.delete(10000)
@@ -105,6 +105,17 @@ client.on('message', async (message) =>{
     else if(message.member.roles.some(r=>"Staff".includes(r.name))) permissionLevel = 2; //lv 2 = helper
     else if(message.member.roles.some(r=>"💠VIP💠".includes(r.name))) permissionLevel = 1; //lv 1 = vip
     else permissionLevel = 0; //lv 0 = everyone
+  }
+
+  //creazione rank per nuovo utente
+  if(!message.author.bot){
+    if(!xp[message.author.id]){
+      xp[message.author.id] = {
+        xp: 0,
+        level: 1
+      };
+      message.member.addRole(message.guild.roles.get(lvRoles[0]));
+    }
   }
 
   if(cmd.split("").slice(0,2).join('')==prefix+'d'){
@@ -405,14 +416,8 @@ client.on('message', async (message) =>{
   
       //////////////////////////////////LEVEL SYSYEM//////////////////////////////////////////
       if(!message.author.bot){
-        if(!xp[message.author.id]){
-          xp[message.author.id] = {
-            xp: 0,
-            level: 1
-          };
-        }
-        if (talkedRecently.has(message.author.id)) {
-            return;
+          if (talkedRecently.has(message.author.id)) {
+              return;
           } else {
             let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI/2);
             
@@ -421,8 +426,9 @@ client.on('message', async (message) =>{
             if(xp[message.author.id].xp>=nextLvXp){
               xp[message.author.id].level++;
               for(var key in lvRoles){
-                if(lvRoles[key]){
+                if(key==xp[message.author.id].level){
                   message.member.addRole(message.guild.roles.get(lvRoles[key]));
+                  message.reply("Hai guadagnato un nuovo fantastico ruolo!");
                 }
               }
 
@@ -430,27 +436,28 @@ client.on('message', async (message) =>{
                 .setAuthor(message.author.username)
                 .setColor('#82c394')
                 .addField("Congratulazioni", "Sei appena salito di livello, ora sei al lv: "+xp[message.author.id].level, true)
-                .setFooter(Math.floor(xp[message.author.id].level*100*Math.PI)-xp[message.author.id].xp+" XP per il prossimo livello", message.author.displayAvatarURL);
+                .setFooter(Math.floor(xp[message.author.id].level*100*Math.PI+(nextLvXp/2))-xp[message.author.id].xp+" XP per il prossimo livello", message.author.displayAvatarURL);
                 message.channel.send(lvlEmbed).then(msg => {
                   msg.delete(10000)
                 });
             }
-    
-    
-            fs.writeFile("./xp.json", JSON.stringify(xp), (err) => {
-              if(err) message.channel.send(err)
-            });
-            // Adds the user to the set so that they can't talk for a minute
-            talkedRecently.add(message.author.id);
-            setTimeout(() => {
-              // Removes the user from the set after a minute
-              talkedRecently.delete(message.author.id);
-            }, 60000);
-          }
+        }
+  
+  
+          fs.writeFile("./xp.json", JSON.stringify(xp), (err) => {
+            if(err) message.channel.send(err)
+          });
+          // Adds the user to the set so that they can't talk for a minute
+          talkedRecently.add(message.author.id);
+          setTimeout(() => {
+            // Removes the user from the set after a minute
+            talkedRecently.delete(message.author.id);
+          }, 60000);
+        }
         
     
-      }
-  }
+      
+    }
   
   catch(err){
     message.channel.send("Oh no!!! C'è stato un errore\n```"+err+'```')
