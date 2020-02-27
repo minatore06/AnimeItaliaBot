@@ -414,7 +414,7 @@ client.on('message', async (message) =>{
         if (talkedRecently.has(message.author.id)) {
             return;
           } else {
-            let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI)/2;
+            let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI/2);
             
             xp[message.author.id].xp+=Math.floor(Math.random() * (20-5+1)) + 5;
             
@@ -422,7 +422,7 @@ client.on('message', async (message) =>{
               xp[message.author.id].level++;
               for(var key in lvRoles){
                 if(lvRoles[key]){
-                  message.member.addRole(client.message.guild.roles.get(lvRoles[key]));
+                  message.member.addRole(message.guild.roles.get(lvRoles[key]));
                 }
               }
 
