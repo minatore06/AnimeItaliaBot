@@ -446,6 +446,7 @@ client.on('message', async (message) =>{
   
   
       if(!message.author.bot){
+        if(cmd.startsWith(prefix))return;
       //////////////////////////////////LEVEL SYSYEM//////////////////////////////////////////
           if (!talkedRecently.has(message.author.id)) {
             let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI/2);
