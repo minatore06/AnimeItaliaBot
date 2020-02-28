@@ -410,7 +410,8 @@ client.on('message', async (message) =>{
 
           case prefix+'money':
             utente = message.mentions.users.first();
-            if(!argresult) utente = message.author;
+            if(utente&&!eco[utente.id])return message.reply("L'utente non ha ancora un conto").then(msg=>eliminazioneMess(message,msg));
+            if(!utente) utente = message.author;
 
             let moneyEmbed = new Discord.RichEmbed()
               .setAuthor(message.author.username)
