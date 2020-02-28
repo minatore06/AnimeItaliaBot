@@ -432,9 +432,9 @@ client.on('message', async (message) =>{
             let gMoneyEmbed = new Discord.RichEmbed()
               .setAuthor(message.author.username)
               .setColor('#2dc20c')
-              .addField("Soldi dati", args[1], false)
-              .addField("Utente che ha dato", eco[message.author.id].pocketMoney, false)
-              .addField("Utente che ha ricevuto", eco[message.author.id].pocketMoney, false)
+              .addField("Soldi dati", args[1]+currency, false)
+              .addField("Utente che ha dato", eco[message.author.id].pocketMoney+currency, false)
+              .addField("Utente che ha ricevuto", eco[utente.id].pocketMoney+currency, false)
               .setFooter(utente.username)
             message.channel.send(gMoneyEmbed).then(message.delete(10000));
             break;
