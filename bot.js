@@ -409,13 +409,13 @@ client.on('message', async (message) =>{
             break;
 
           case prefix+'money':
-            let lvlEmbed = new Discord.RichEmbed()
+            let moneyEmbed = new Discord.RichEmbed()
               .setAuthor(message.author.username)
               .setColor('#2dc20c')
               .addField("Pocket", currency+eco[message.author.id].pocketMoney, true)
               .addField("Bank", currency+eco[message.author.id].bankMoney, true)
               .addField("Totale", currency+(parseInt(eco[message.author.id].pocketMoney)+parseInt(eco[message.author.id].bankMoney)),true)
-            message.channel.send(lvlEmbed).then(msg => {
+            message.channel.send(moneyEmbed).then(msg => {
               msg.delete(20000)
               message.delete(10000)
             });
@@ -429,14 +429,14 @@ client.on('message', async (message) =>{
             eco[message.author.id]-=parseInt(args[1]);
             eco[utente.id]+=parseInt(args[1]);
 
-            let lvlEmbed = new Discord.RichEmbed()
+            let gMoneyEmbed = new Discord.RichEmbed()
               .setAuthor(message.author.username)
               .setColor('#2dc20c')
               .addField("Soldi dati", args[1], false)
               .addField("Utente che ha dato", eco[message.author.id].pocketMoney, false)
               .addField("Utente che ha ricevuto", eco[message.author.id].pocketMoney, false)
               .setFooter(utente.username)
-            message.channel.send(lvlEmbed).then(message.delete(10000));
+            message.channel.send(gMoneyEmbed).then(message.delete(10000));
             break;
 
           case prefix+'add-money':
