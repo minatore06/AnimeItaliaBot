@@ -10,10 +10,13 @@ const client = new Discord.Client();
 
 const config = require("./config.json");
 var xp = require("./xp.json");
+var eco = requite("./eco.json");
+
 const bOwner = config.ownerID;
 const prefix = config.prefix;
 const token = config.token;
 const talkedRecently = new Set();
+const talkedNoMoney = new Set();
 const lvRoles = {0:'682658762393518251', 5:'682658760208023570', 10:'682658757943361561', 20:'682658755824844846', 30:'682658749961601028'}
 
 var permissionLevel = 0;
@@ -21,6 +24,7 @@ var tempoMute = [[]];
 var tempoOnMin = 1000;
 var staff = [["316988662799925249", 0, 0], ["306101030704119808", 0, 0],["457523600530866187", 0, 0], ["302479840563691521", 0, 0], ["267303785880223744", 0, 0], ["207785335990648832", 0, 0], ["397191718577111050", 0, 0], ["308263263739838464", 0, 0], ["202787285266202624", 0, 0], ["457125304058773506", 0, 0], ["541679053904805900", 0, 0], ["327870532735205387", 0, 0]];
 var gu = "353241710794375169" //guild id
+var currency = '€';
 var xpTemp = 0;
 var entrate1 = 0;
 var entrate2 = 0;
@@ -99,16 +103,16 @@ client.on('message', async (message) =>{
   let everyone = message.guild.defaultRole;
   
   if(message.content.startsWith(prefix)){
-    if(message.member.id == message.guild.ownerID || message.member.id == '316988662799925249') permissionLevel = 5; //lv 5 = founder
-    else if(message.member.roles.some(r=>"✔️Admin✔️".includes(r.name))) permissionLevel = 4; //lv 4 = admin
-    else if(message.member.roles.some(r=>"✔️Moderatori✔️".includes(r.name))) permissionLevel = 3; //lv 3 = mod
-    else if(message.member.roles.some(r=>"Staff".includes(r.name))) permissionLevel = 2; //lv 2 = helper
-    else if(message.member.roles.some(r=>"💠VIP💠".includes(r.name))) permissionLevel = 1; //lv 1 = vip
+    if(message.member.id == message.guild.ownerID) permissionLevel = 5; //lv 5 = founder
+    else if(message.member.roles.some(r=>"681625994700128286".includes(r.id))) permissionLevel = 4; //lv 4 = admin dea
+    else if(message.member.roles.some(r=>"681825632891699227".includes(r.id))) permissionLevel = 3; //lv 3 = mod bho
+    else if(message.member.roles.some(r=>"682309861924405260".includes(r.id))) permissionLevel = 2; //lv 2 = helper idk
+    else if(message.member.roles.some(r=>"💠VIP💠".includes(r.id))) permissionLevel = 1; //lv 1 = vip
     else permissionLevel = 0; //lv 0 = everyone
   }
 
-  //creazione rank per nuovo utente
   if(!message.author.bot){
+    //creazione rank per nuovo utente
     if(!xp[message.author.id]){
       xp[message.author.id] = {
         xp: 0,
@@ -116,11 +120,18 @@ client.on('message', async (message) =>{
       };
       message.member.addRole(message.guild.roles.get(lvRoles[0]));
     }
+    //creazione acconto per nuovo utente
+    if(!eco[message.author.id]){
+      eco[message.author.id] = {
+        pocketMoney: 0,
+        bankMoney: 100
+      };
+    }
   }
 
   if(cmd.split("").slice(0,2).join('')==prefix+'d'){
     var n = cmd.split("").slice(2).join('');
-    if(n==""||n==" ")return message.reply("Nessun numero inserito").then(msg=>eliminazioneMess(message, msg));
+    if(n==""||n==" "||n<2)return message.reply("Nessun numero inserito o numero non valido").then(msg=>eliminazioneMess(message, msg));
     message.channel.send(Math.floor(Math.random()*(n))+1);
     return;
   }
@@ -390,35 +401,51 @@ client.on('message', async (message) =>{
             message.reply("il numero ''" + x + "'' in binario è '' " + binario + "''");
           }
 
-          case prefix+'join':
-            if (!message.guild) return;
-            if (message.member.id!=bOwner) return;
-            else {
-                let voiceChan = message.member.voiceChannel;
-                if (!voiceChan || voiceChan.type !== 'voice') {
-                    message.channel.send('No');
-                } else if (message.guild.voiceConnection) {
-                    message.channel.send('Hey tu, sono gia\' in una vocale');
-                } else {
-                    message.channel.send('Joining...');
-                    voiceChan.join().then(connection => message.channel.send("Entrato"));
-                }
-            }
-            break;
-      
           case prefix+'level':
             let utente = message.mentions.users.first();
             if(!argresult) utente = message.author;
             levelUp(message, utente);
             break;
-      }  
+
+          case prefix+'money':
+            let lvlEmbed = new Discord.RichEmbed()
+              .setAuthor(message.author.username)
+              .setColor('#2dc20c')
+              .addField("Pocket Money", currency+eco[message.author.id].pocketMoney, true)
+              .addField("Bank Money", currency+eco[message.author.id].bankMoney, true)
+              .addField("Totale", currency+(eco[message.author.id].pocketMoney+eco[message.author.id].bankMoney),true)
+            message.channel.send(lvlEmbed).then(msg => {
+              msg.delete(20000)
+            });
+            break;
+
+          case prefix+'give-money':
+            break;
+
+          case prefix+'add-money':
+            if(permissionLevel<4)return message.reply("Non hai il permesso necessario per usare questo comando").then(msg=>eliminazioneMess(message,msg));
+            
+            let utente = message.mentions.users.first();
+            if(!utente)return message.reply("Devi taggare un utente").then(msg=>eliminazioneMess(message,msg));
+            eco[utente.id].pocketMoney+=args[1];
+            message.reply("Aggiunti "+args[1]+currency+", a "+utente.toString()+", ora ha "+eco[utente.id].pocketMoney).then(msg=>eliminazioneMess(message,msg));
+            break;
+
+          case prefix+'remove-money':
+            if(permissionLevel<4)return message.reply("Non hai il permesso necessario per usare questo comando").then(msg=>eliminazioneMess(message,msg));
+            
+            let utente = message.mentions.users.first();
+            if(!utente)return message.reply("Devi taggare un utente").then(msg=>eliminazioneMess(message,msg));
+            if(eco[utente.id].pocketMoney<args[1])return message.reply("L'utente non ha abbastanza soldi").then(msg=>eliminazioneMess(message,msg));
+            eco[utente.id].pocketMoney-=args[1];
+            message.reply("Rimossi "+args[1]+currency+", a "+utente.toString()+", ora ha "+eco[utente.id].pocketMoney).then(msg=>eliminazioneMess(message,msg));
+            break;
+      }
   
   
-      //////////////////////////////////LEVEL SYSYEM//////////////////////////////////////////
       if(!message.author.bot){
-          if (talkedRecently.has(message.author.id)) {
-              return;
-          } else {
+      //////////////////////////////////LEVEL SYSYEM//////////////////////////////////////////
+          if (!talkedRecently.has(message.author.id)) {
             let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI/2);
             
             xp[message.author.id].xp+=Math.floor(Math.random() * (20-5+1)) + 5;
@@ -441,20 +468,38 @@ client.on('message', async (message) =>{
                   msg.delete(10000)
                 });
             }
-        }
   
   
-          fs.writeFile("./xp.json", JSON.stringify(xp), (err) => {
-            if(err) message.channel.send(err)
-          });
-          // Adds the user to the set so that they can't talk for a minute
-          talkedRecently.add(message.author.id);
-          setTimeout(() => {
-            // Removes the user from the set after a minute
-            talkedRecently.delete(message.author.id);
-          }, 60000);
-        }
-        
+            fs.writeFile("./xp.json", JSON.stringify(xp), (err) => {
+              if(err) message.channel.send(err)
+            });
+            // Adds the user to the set so that they can't talk for a minute
+            talkedRecently.add(message.author.id);
+            setTimeout(() => {
+              // Removes the user from the set after a minute
+              talkedRecently.delete(message.author.id);
+            }, 60000);
+          }
+
+
+
+      ////////////////////////////////ECONOMY SYSYEM//////////////////////////////////////////
+          if(!talkedNoMoney.has(message.author.id)){
+            eco[message.author.id].pocketMoney+=Math.floor(Math.rancom() * (20-5+1)) + 5;
+  
+  
+            fs.writeFile("./eco.json", JSON.stringify(eco), (err) => {
+              if(err) message.channel.send(err)
+            });
+            // Adds the user to the set so that they can't talk for a minute
+            talkedNoMoney.add(message.author.id);
+            setTimeout(() => {
+              // Removes the user from the set after a minute
+              talkedNoMoney.delete(message.author.id);
+            }, 20000);
+          }
+
+      }
     
       
     }
