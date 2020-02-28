@@ -414,12 +414,13 @@ client.on('message', async (message) =>{
             if(!utente) utente = message.author;
 
             let moneyEmbed = new Discord.RichEmbed()
-              .setAuthor(message.author.username)
+              .setAuthor(utente.username)
               .setColor('#2dc20c')
               .addField("Pocket", currency+eco[utente.id].pocketMoney, true)
               .addField("Bank", currency+eco[utente.id].bankMoney, true)
               .addField("Totale", currency+(parseInt(eco[utente.id].pocketMoney)+parseInt(eco[utente.id].bankMoney)),true)
-            message.channel.send(moneyEmbed).then(msg => {
+              .setFooter(message.author.id, utente.displayAvatarURL)
+              message.channel.send(moneyEmbed).then(msg => {
               msg.delete(20000)
               message.delete(10000)
             });
@@ -439,7 +440,7 @@ client.on('message', async (message) =>{
               .addField("Soldi dati", args[1]+currency, false)
               .addField("Utente che ha dato", eco[message.author.id].pocketMoney+currency, false)
               .addField("Utente che ha ricevuto", eco[utente.id].pocketMoney+currency, false)
-              .setFooter(utente.username)
+              .setFooter(utente.username, message.author.displayAvatarURL)
             message.channel.send(gMoneyEmbed).then(message.delete(10000));
 
             fs.writeFile("./eco.json", JSON.stringify(eco), (err) => {
