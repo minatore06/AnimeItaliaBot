@@ -429,7 +429,7 @@ client.on('message', async (message) =>{
             
             utente = message.mentions.users.first();
             if(!utente)return message.reply("Devi taggare un utente").then(msg=>eliminazioneMess(message,msg));
-            eco[utente.id].pocketMoney+=args[1];
+            eco[utente.id].pocketMoney+=parseInt(args[1]);
             message.reply("Aggiunti "+args[1]+currency+", a "+utente.toString()+", ora ha "+eco[utente.id].pocketMoney).then(msg=>eliminazioneMess(message,msg));
             break;
 
@@ -439,7 +439,7 @@ client.on('message', async (message) =>{
             utente = message.mentions.users.first();
             if(!utente)return message.reply("Devi taggare un utente").then(msg=>eliminazioneMess(message,msg));
             if(eco[utente.id].pocketMoney<args[1])return message.reply("L'utente non ha abbastanza soldi").then(msg=>eliminazioneMess(message,msg));
-            eco[utente.id].pocketMoney-=args[1];
+            eco[utente.id].pocketMoney-=parseInt(args[1]);
             message.reply("Rimossi "+args[1]+currency+", a "+utente.toString()+", ora ha "+eco[utente.id].pocketMoney).then(msg=>eliminazioneMess(message,msg));
             break;
       }
