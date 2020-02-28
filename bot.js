@@ -60,7 +60,7 @@ function levelUp(message, utente){
     .setFooter(Math.floor(xp[utente.id].level*100*Math.PI)+Math.floor((xp[utente.id].level-1)*100*Math.PI/2)-xp[utente.id].xp+" XP per il prossimo livello", utente.displayAvatarURL);
 
   message.channel.send(lvlEmbed).then(msg => {
-    msg.delete(10000)
+    msg.delete(20000)
     message.delete(5000)
   });
   
@@ -412,8 +412,8 @@ client.on('message', async (message) =>{
             let lvlEmbed = new Discord.RichEmbed()
               .setAuthor(message.author.username)
               .setColor('#2dc20c')
-              .addField("Pocket Money", currency+eco[message.author.id].pocketMoney, true)
-              .addField("Bank Money", currency+eco[message.author.id].bankMoney, true)
+              .addField("Pocket", currency+eco[message.author.id].pocketMoney, true)
+              .addField("Bank", currency+eco[message.author.id].bankMoney, true)
               .addField("Totale", currency+(parseInt(eco[message.author.id].pocketMoney)+parseInt(eco[message.author.id].bankMoney)),true)
             message.channel.send(lvlEmbed).then(msg => {
               msg.delete(20000)
@@ -422,6 +422,21 @@ client.on('message', async (message) =>{
             break;
 
           case prefix+'give-money':
+            utente = message.mentions.users.first();
+            if(!utente)return message.reply("Devi taggare un utente a cui dare i soldi").then(msg=>eliminazioneMess(message,msg));
+            if(!eco[utente.id])return message.reply("L'utente non ha ancora un conto").then(msg=>eliminazioneMess(message,msg));
+            if(eco[message.author.id].pocketMoney<args[1])return message.reply("Non hai abbastanza soldi poraccio").then(msg=>eliminazioneMess(message,msg));
+            eco[message.author.id]-=parseInt(args[1]);
+            eco[utente.id]+=parseInt(args[1]);
+
+            let lvlEmbed = new Discord.RichEmbed()
+              .setAuthor(message.author.username)
+              .setColor('#2dc20c')
+              .addField("Soldi dati", args[1], false)
+              .addField("Utente che ha dato", eco[message.author.id].pocketMoney, false)
+              .addField("Utente che ha ricevuto", eco[message.author.id].pocketMoney, false)
+              .setFooter(utente.username)
+            message.channel.send(lvlEmbed).then(message.delete(10000));
             break;
 
           case prefix+'add-money':
@@ -430,7 +445,7 @@ client.on('message', async (message) =>{
             utente = message.mentions.users.first();
             if(!utente)return message.reply("Devi taggare un utente").then(msg=>eliminazioneMess(message,msg));
             eco[utente.id].pocketMoney+=parseInt(args[1]);
-            message.reply("Aggiunti "+args[1]+currency+", a "+utente.toString()+", ora ha "+eco[utente.id].pocketMoney).then(msg=>eliminazioneMess(message,msg));
+            message.reply("Aggiunti "+args[1]+currency+", a "+utente.toString()+", ora ha "+eco[utente.id].pocketMoney)+currency;
             break;
 
           case prefix+'remove-money':
@@ -440,7 +455,7 @@ client.on('message', async (message) =>{
             if(!utente)return message.reply("Devi taggare un utente").then(msg=>eliminazioneMess(message,msg));
             if(eco[utente.id].pocketMoney<args[1])return message.reply("L'utente non ha abbastanza soldi").then(msg=>eliminazioneMess(message,msg));
             eco[utente.id].pocketMoney-=parseInt(args[1]);
-            message.reply("Rimossi "+args[1]+currency+", a "+utente.toString()+", ora ha "+eco[utente.id].pocketMoney).then(msg=>eliminazioneMess(message,msg));
+            message.reply("Rimossi "+args[1]+currency+", a "+utente.toString()+", ora ha "+eco[utente.id].pocketMoney)+currency;
             break;
       }
   
@@ -468,7 +483,7 @@ client.on('message', async (message) =>{
                 .addField("Congratulazioni", "Sei appena salito di livello, ora sei al lv: "+xp[message.author.id].level, true)
                 .setFooter(Math.floor(xp[message.author.id].level*100*Math.PI+(nextLvXp/2))-xp[message.author.id].xp+" XP per il prossimo livello", message.author.displayAvatarURL);
                 message.channel.send(lvlEmbed).then(msg => {
-                  msg.delete(10000)
+                  msg.delete(20000)
                 });
             }
   
