@@ -426,8 +426,8 @@ client.on('message', async (message) =>{
             if(!utente)return message.reply("Devi taggare un utente a cui dare i soldi").then(msg=>eliminazioneMess(message,msg));
             if(!eco[utente.id])return message.reply("L'utente non ha ancora un conto").then(msg=>eliminazioneMess(message,msg));
             if(eco[message.author.id].pocketMoney<args[1])return message.reply("Non hai abbastanza soldi poraccio").then(msg=>eliminazioneMess(message,msg));
-            eco[message.author.id]-=parseInt(args[1]);
-            eco[utente.id]+=parseInt(args[1]);
+            eco[message.author.id].pocketMoney-=parseInt(args[1]);
+            eco[utente.id].pocketMoney+=parseInt(args[1]);
 
             let gMoneyEmbed = new Discord.RichEmbed()
               .setAuthor(message.author.username)
