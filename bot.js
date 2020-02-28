@@ -10,7 +10,7 @@ const client = new Discord.Client();
 
 const config = require("./config.json");
 var xp = require("./xp.json");
-var eco = requite("./eco.json");
+var eco = require("./eco.json");
 
 const bOwner = config.ownerID;
 const prefix = config.prefix;
