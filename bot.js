@@ -101,6 +101,7 @@ client.on('message', async (message) =>{
   var argresult = args.join(' ');
   let ruolo;
   let everyone = message.guild.defaultRole;
+  let utente = null;
   
   if(message.content.startsWith(prefix)){
     if(message.member.id == message.guild.ownerID) permissionLevel = 5; //lv 5 = founder
@@ -402,7 +403,7 @@ client.on('message', async (message) =>{
           }
 
           case prefix+'level':
-            let utente = message.mentions.users.first();
+            utente = message.mentions.users.first();
             if(!argresult) utente = message.author;
             levelUp(message, utente);
             break;
@@ -425,7 +426,7 @@ client.on('message', async (message) =>{
           case prefix+'add-money':
             if(permissionLevel<4)return message.reply("Non hai il permesso necessario per usare questo comando").then(msg=>eliminazioneMess(message,msg));
             
-            let utente = message.mentions.users.first();
+            utente = message.mentions.users.first();
             if(!utente)return message.reply("Devi taggare un utente").then(msg=>eliminazioneMess(message,msg));
             eco[utente.id].pocketMoney+=args[1];
             message.reply("Aggiunti "+args[1]+currency+", a "+utente.toString()+", ora ha "+eco[utente.id].pocketMoney).then(msg=>eliminazioneMess(message,msg));
@@ -434,7 +435,7 @@ client.on('message', async (message) =>{
           case prefix+'remove-money':
             if(permissionLevel<4)return message.reply("Non hai il permesso necessario per usare questo comando").then(msg=>eliminazioneMess(message,msg));
             
-            let utente = message.mentions.users.first();
+            utente = message.mentions.users.first();
             if(!utente)return message.reply("Devi taggare un utente").then(msg=>eliminazioneMess(message,msg));
             if(eco[utente.id].pocketMoney<args[1])return message.reply("L'utente non ha abbastanza soldi").then(msg=>eliminazioneMess(message,msg));
             eco[utente.id].pocketMoney-=args[1];
