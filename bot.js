@@ -409,12 +409,15 @@ client.on('message', async (message) =>{
             break;
 
           case prefix+'money':
+            utente = message.mentions.users.first();
+            if(!argresult) utente = message.author;
+
             let moneyEmbed = new Discord.RichEmbed()
               .setAuthor(message.author.username)
               .setColor('#2dc20c')
-              .addField("Pocket", currency+eco[message.author.id].pocketMoney, true)
-              .addField("Bank", currency+eco[message.author.id].bankMoney, true)
-              .addField("Totale", currency+(parseInt(eco[message.author.id].pocketMoney)+parseInt(eco[message.author.id].bankMoney)),true)
+              .addField("Pocket", currency+eco[utente.id].pocketMoney, true)
+              .addField("Bank", currency+eco[utente.id].bankMoney, true)
+              .addField("Totale", currency+(parseInt(eco[utente.id].pocketMoney)+parseInt(eco[utente.id].bankMoney)),true)
             message.channel.send(moneyEmbed).then(msg => {
               msg.delete(20000)
               message.delete(10000)
