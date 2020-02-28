@@ -414,12 +414,12 @@ client.on('message', async (message) =>{
             if(!utente) utente = message.author;
 
             let moneyEmbed = new Discord.RichEmbed()
-              .setAuthor(utente.username)
+              .setAuthor(utente.username, utente.displayAvatarURL)
               .setColor('#2dc20c')
               .addField("Pocket", currency+eco[utente.id].pocketMoney, true)
               .addField("Bank", currency+eco[utente.id].bankMoney, true)
               .addField("Totale", currency+(parseInt(eco[utente.id].pocketMoney)+parseInt(eco[utente.id].bankMoney)),true)
-              .setFooter(message.author.id, utente.displayAvatarURL)
+              .setFooter(message.author.id)
               message.channel.send(moneyEmbed).then(msg => {
               msg.delete(20000)
               message.delete(10000)
@@ -435,12 +435,12 @@ client.on('message', async (message) =>{
             eco[utente.id].pocketMoney+=parseInt(args[1]);
 
             let gMoneyEmbed = new Discord.RichEmbed()
-              .setAuthor(message.author.username)
+              .setAuthor(message.author.username, message.author.displayAvatarURL)
               .setColor('#2dc20c')
               .addField("Soldi dati", args[1]+currency, false)
               .addField("Utente che ha dato", eco[message.author.id].pocketMoney+currency, false)
               .addField("Utente che ha ricevuto", eco[utente.id].pocketMoney+currency, false)
-              .setFooter(utente.username, message.author.displayAvatarURL)
+              .setFooter(utente.username, utente.displayAvatarURL)
             message.channel.send(gMoneyEmbed).then(message.delete(10000));
 
             fs.writeFile("./eco.json", JSON.stringify(eco), (err) => {
