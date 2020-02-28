@@ -414,9 +414,10 @@ client.on('message', async (message) =>{
               .setColor('#2dc20c')
               .addField("Pocket Money", currency+eco[message.author.id].pocketMoney, true)
               .addField("Bank Money", currency+eco[message.author.id].bankMoney, true)
-              .addField("Totale", currency+(eco[message.author.id].pocketMoney+eco[message.author.id].bankMoney),true)
+              .addField("Totale", currency+(parseInt(eco[message.author.id].pocketMoney)+parseInt(eco[message.author.id].bankMoney)),true)
             message.channel.send(lvlEmbed).then(msg => {
               msg.delete(20000)
+              message.delete(10000)
             });
             break;
 
@@ -486,7 +487,7 @@ client.on('message', async (message) =>{
 
       ////////////////////////////////ECONOMY SYSYEM//////////////////////////////////////////
           if(!talkedNoMoney.has(message.author.id)){
-            eco[message.author.id].pocketMoney+=Math.floor(Math.random() * (20-5+1)) + 5;
+            eco[message.author.id].pocketMoney+=Math.floor(Math.random() * (15-5+1)) + 5;
   
   
             fs.writeFile("./eco.json", JSON.stringify(eco), (err) => {
@@ -497,7 +498,7 @@ client.on('message', async (message) =>{
             setTimeout(() => {
               // Removes the user from the set after a minute
               talkedNoMoney.delete(message.author.id);
-            }, 20000);
+            }, 40000);
           }
 
       }
