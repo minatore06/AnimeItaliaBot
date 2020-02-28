@@ -440,6 +440,10 @@ client.on('message', async (message) =>{
               .addField("Utente che ha ricevuto", eco[utente.id].pocketMoney+currency, false)
               .setFooter(utente.username)
             message.channel.send(gMoneyEmbed).then(message.delete(10000));
+
+            fs.writeFile("./eco.json", JSON.stringify(eco), (err) => {
+              if(err) message.channel.send(err)
+            });
             break;
 
           case prefix+'add-money':
@@ -449,6 +453,10 @@ client.on('message', async (message) =>{
             if(!utente)return message.reply("Devi taggare un utente").then(msg=>eliminazioneMess(message,msg));
             eco[utente.id].pocketMoney+=parseInt(args[1]);
             message.reply("Aggiunti "+args[1]+currency+", a "+utente.toString()+", ora ha "+eco[utente.id].pocketMoney)+currency;
+            
+            fs.writeFile("./eco.json", JSON.stringify(eco), (err) => {
+              if(err) message.channel.send(err)
+            });
             break;
 
           case prefix+'remove-money':
@@ -459,6 +467,10 @@ client.on('message', async (message) =>{
             if(eco[utente.id].pocketMoney<args[1])return message.reply("L'utente non ha abbastanza soldi").then(msg=>eliminazioneMess(message,msg));
             eco[utente.id].pocketMoney-=parseInt(args[1]);
             message.reply("Rimossi "+args[1]+currency+", a "+utente.toString()+", ora ha "+eco[utente.id].pocketMoney)+currency;
+            
+            fs.writeFile("./eco.json", JSON.stringify(eco), (err) => {
+              if(err) message.channel.send(err)
+            });
             break;
       }
   
