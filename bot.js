@@ -11,12 +11,14 @@ const client = new Discord.Client();
 const config = require("./config.json");
 var xp = require("./xp.json");
 var eco = require("./eco.json");
+var ticket = require("./ticket.json");
 
 const bOwner = config.ownerID;
 const prefix = config.prefix;
 const token = config.token;
 const talkedRecently = new Set();
 const talkedNoMoney = new Set();
+const ticketRecently = new Set();
 const lvRoles = {0:'682658762393518251', 5:'682658760208023570', 10:'682658757943361561', 20:'682658755824844846', 30:'682658749961601028'}
 
 var permissionLevel = 0;
@@ -31,6 +33,7 @@ var entrate2 = 0;
 var entrate3 = 0;
 const namek = "316988662799925249";
 const io = "575399619140255779";
+var ticketMessage = '684164646466355201';
 var menzionare = true;
 var tagTime = 60;
 var pingRole;
@@ -39,8 +42,8 @@ var pingRole;
 function eliminazioneMess(message, msg)//funzione per eliminare il messaggio di risposta
 {
  setTimeout(function(){
-    msg.delete();
-    message.delete();
+   if(msg)msg.delete();
+    if(message)message.delete();
   }, 10000)
   return;
 }
@@ -68,6 +71,7 @@ function levelUp(message, utente){
 
 client.on('ready', () => {
   console.log('Wow il bot è online')
+  client.channels.get("684164625289576489").fetchMessage("684164646466355201");
   /*
   setInterval(() => {
   
@@ -100,7 +104,7 @@ client.on('message', async (message) =>{
   let args = messageAr.slice(1);
   var argresult = args.join(' ');
   let ruolo;
-  let everyone = message.guild.defaultRole;
+  //let everyone = message.guild.id;
   let utente = null;
   
   if(message.content.startsWith(prefix)){
@@ -370,7 +374,7 @@ client.on('message', async (message) =>{
           if(permissionLevel!=5)return;
           
           message.guild.channels.every(async (channel, id) => {
-            await channel.overwritePermissions(everyone, {
+            await channel.overwritePermissions(message.guild.id, {
               VIEW_CHANNEL: false,
             });
           });
@@ -381,7 +385,7 @@ client.on('message', async (message) =>{
           if(permissionLevel!=5)return;
           
           message.guild.channels.every(async (channel, id) => {
-            await channel.overwritePermissions(everyone, {
+            await channel.overwritePermissions(message.guild.id, {
               VIEW_CHANNEL: null,
             });
           });
@@ -549,6 +553,150 @@ client.on('message', async (message) =>{
 client.on('error', (errore) => {
   console.log(errore)
   if(errore.discordAPIError) return client.user.lastMessage.channel.send(errore.discordAPIRError.method)
+})
+
+client.on('messageReactionAdd', async (reaction, utente) => {
+  if(reaction.message.id==ticketMessage){
+    let cancel = false;
+
+    if(!ticket[utente.id]){
+      ticket[utente.id]={
+        nTickets:0
+      }
+    }
+
+    if(ticketRecently[utente.id])return reaction.message.reply("Hai già creato un ticket di recente, aspetta almeno 1 ora tra un ticket e l'altro").then(msg=>eliminazioneMess(message,msg));
+
+    if(parseInt(ticket[utente.id].nTickets)==3)return reaction.message.reply("Hai già raggiunto il limite massimo di support tickets(3)").then(msg=>eliminazioneMess(null,msg));
+
+    let createTicketEmbed = new Discord.RichEmbed()
+      .setTitle("Creazione support ticket")
+      .setDescription("Inserire l'oggetto del ticket")
+      .setFooter("Dopo 30 secondi l'operazione verrà cancellata")
+    utente.send(createTicketEmbed);
+
+    let dm = await utente.createDM();
+    let filter = m => m.author.id==utente.id;
+
+    let ticketEmbed = new Discord.RichEmbed();
+    await dm.awaitMessages(filter, {max:1, time:30000, errors:['time']})
+      .then(collected => ticketEmbed.setTitle(collected.first().content))
+      .catch(function(){utente.send("Operazione annullata")
+      cancel=true;
+    });
+    if(cancel)return;
+
+    createTicketEmbed.setDescription("Inserire una descrizione per il ticket")
+    utente.send(createTicketEmbed);
+
+    await dm.awaitMessages(filter, {max:1, time:30000, errors:['time']})
+      .then(collected => ticketEmbed.setDescription(collected.first().content))
+      .catch(function(){utente.send("Operazione annullata")
+      cancel=true;
+    });
+    if(cancel)return
+
+    createTicketEmbed.setDescription("Reagire con :white_check_mark: per aggiungere uno screenshot, reagire con :negative_squared_cross_mark:")
+    await utente.send(createTicketEmbed).then(msg=>{
+    //await wait(2000)
+    msg.react('✅').then(msg.react('❎'))
+    })
+
+    let filtro = (reaction, user) => {
+      return ['✅', '❎'].includes(reaction.emoji.name) && user.id===utente.id
+    }
+    await dm.lastMessage.awaitReactions(filtro, {max: 1, time:30000, errors:['time']})
+      .then(async function(){
+        if(dm.lastMessage.reactions.get('✅').users.get(utente.id)){
+          createTicketEmbed.setDescription("Inviare uno screenshot");
+          createTicketEmbed.setFooter("Dopo 60 secondi l'operazione verrà cancellata")
+          utente.send(createTicketEmbed);
+
+          await dm.awaitMessages(filter, {max:1, time:60000, errors:['time']})
+            .then(() => {
+              ticketEmbed.setImage(utente.lastMessage.attachments.first().url);
+            })
+            .catch(function(){utente.send("Operazione annullata")
+              cancel=true;
+            })
+          }
+        })
+      .catch(function(){utente.send("Operazione annullata")
+        cancel=true;
+      })
+    if(cancel)return;
+
+    ticket[utente.id].nTickets=parseInt(ticket[utente.id].nTickets)+1;
+    
+    ticket.count=parseInt(ticket.count)+1;
+    var s=""+parseInt(ticket.count);
+    while (s.length < 3) s = "0" + s;
+    s="#"+s;
+
+    utente.send("Operazione completata, attendi che un membro dello staff accetti il tuo ticket")
+
+    await reaction.message.guild.createChannel(s, {
+      type:"text",
+      permissionOverwrites: [{
+        id: utente.id,
+        allow: ['VIEW_CHANNEL']
+      },
+      {
+        id: reaction.message.guild.id,
+        deny: ['VIEW_CHANNEL']
+      },
+      {
+        id: "681825632891699227",
+        allow: ['VIEW_CHANNEL']
+      }]
+    }).then(ch=>ch.send(ticketEmbed)
+      .then(async(msg) => {
+        await msg.react('✅')
+        await msg.react('❎')
+        filtro = (reaction, user) => {
+          return ['✅', '❎'].includes(reaction.emoji.name) && user.id!=client.user.id
+        }
+        await msg.awaitReactions(filtro, {max: 1, time:600000, errors:['time']})
+        .then(async function(){
+          await wait(1000)
+          console.log(msg.reactions.get('✅').count)
+
+          if(msg.reactions.get('✅').count>1){
+            utente.send("Ticket accettato")
+            ch.overwritePermissions(utente.id,{
+                SEND_MESSAGES:true
+              })
+          }
+
+          if(msg.reactions.get('❎').count>1){
+            utente.send("Ticket respinto")
+            ch.overwritePermissions(utente.id,{
+                VIEW_CHANNEL:false
+            })
+
+            ticket[utente.id].nTickets-=1
+
+            ch.send(new Discord.RichEmbed()
+              .setTitle("Ticket chiuso")
+              .setFooter("Ticket chiuso da "+msg.reactions.get('❎').users.first().username,msg.reactions.get('❎').users.first().displayAvatarURL))
+            .then(msg=>msg.react('🗑️'))
+          }
+        })
+      }))
+
+
+    reaction.remove(utente);
+
+    ticketRecently.add(utente.id);
+    setTimeout(() => {
+      // Removes the user from the set after a minute
+      ticketRecently.delete(utente.id);
+    },360000);
+
+    fs.writeFile("./ticket.json", JSON.stringify(ticket), (err) => {
+      if(err) message.channel.send(err)
+    });
+  }
 })
 
 /*client.on('guildMemberAdd', (membro) => {
