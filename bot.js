@@ -119,6 +119,7 @@ client.on('message', async (message) =>{
   if(!message.author.bot){
     //creazione rank per nuovo utente
     if(!xp[message.author.id]){
+    if(!message.channel.guild)return
       xp[message.author.id] = {
         xp: 0,
         level: 1
@@ -127,6 +128,7 @@ client.on('message', async (message) =>{
     }
     //creazione acconto per nuovo utente
     if(!eco[message.author.id]){
+      if(!message.channel.guild)return
       eco[message.author.id] = {
         pocketMoney: 0,
         bankMoney: 100
@@ -483,6 +485,7 @@ client.on('message', async (message) =>{
   
       if(!message.author.bot){
         if(cmd.startsWith(prefix))return;
+        if(!message.channel.guild)return
       //////////////////////////////////LEVEL SYSYEM//////////////////////////////////////////
           if (!talkedRecently.has(message.author.id)) {
             let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI/2);
