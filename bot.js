@@ -25,7 +25,7 @@ var permissionLevel = 0;
 var tempoMute = [[]];
 var tempoOnMin = 1000;
 var staff = [["316988662799925249", 0, 0], ["306101030704119808", 0, 0],["457523600530866187", 0, 0], ["302479840563691521", 0, 0], ["267303785880223744", 0, 0], ["207785335990648832", 0, 0], ["397191718577111050", 0, 0], ["308263263739838464", 0, 0], ["202787285266202624", 0, 0], ["457125304058773506", 0, 0], ["541679053904805900", 0, 0], ["327870532735205387", 0, 0]];
-var gu = "353241710794375169" //guild id
+var gu = "681624606976901211" //guild id
 var currency = '€';
 var xpTemp = 0;
 var entrate1 = 0;
@@ -69,6 +69,20 @@ function levelUp(message, utente){
   
 }
 
+function rejectTicket(msg, utente, ch){
+  utente.send("Ticket respinto")
+  ch.overwritePermissions(utente.id,{
+      VIEW_CHANNEL:false
+  })
+
+  ticket[utente.id].nTickets-=1
+
+  ch.send(new Discord.RichEmbed()
+    .setTitle("Ticket chiuso")
+    .setFooter("Ticket chiuso da "+msg.reactions.get('❎').users.first().username,msg.reactions.get('❎').users.first().displayAvatarURL))
+  .then(msg=>msg.react('🗑️'))
+}
+
 client.on('ready', () => {
   console.log('Wow il bot è online')
   client.channels.get("684164625289576489").fetchMessage("684164646466355201");
@@ -107,6 +121,8 @@ client.on('message', async (message) =>{
   //let everyone = message.guild.id;
   let utente = null;
   
+  if(!message.channel.guild)return
+
   if(message.content.startsWith(prefix)){
     if(message.member.id == message.guild.ownerID) permissionLevel = 5; //lv 5 = founder
     else if(message.member.roles.some(r=>"681625994700128286".includes(r.id))) permissionLevel = 4; //lv 4 = admin dea
@@ -119,7 +135,7 @@ client.on('message', async (message) =>{
   if(!message.author.bot){
     //creazione rank per nuovo utente
     if(!xp[message.author.id]){
-    if(!message.channel.guild)return
+    if(message.channel.guild.id!=gu)return;
       xp[message.author.id] = {
         xp: 0,
         level: 1
@@ -128,7 +144,7 @@ client.on('message', async (message) =>{
     }
     //creazione acconto per nuovo utente
     if(!eco[message.author.id]){
-      if(!message.channel.guild)return
+      if(message.channel.guild.id!=gu)return;
       eco[message.author.id] = {
         pocketMoney: 0,
         bankMoney: 100
@@ -486,6 +502,7 @@ client.on('message', async (message) =>{
       if(!message.author.bot){
         if(cmd.startsWith(prefix))return;
         if(!message.channel.guild)return
+        if(message.channel.guild.id!=gu)return;
       //////////////////////////////////LEVEL SYSYEM//////////////////////////////////////////
           if (!talkedRecently.has(message.author.id)) {
             let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI/2);
@@ -672,20 +689,12 @@ client.on('messageReactionAdd', async (reaction, utente) => {
           }
 
           if(msg.reactions.get('❎').count>1){
-            utente.send("Ticket respinto")
-            ch.overwritePermissions(utente.id,{
-                VIEW_CHANNEL:false
-            })
-
-            ticket[utente.id].nTickets-=1
-
-            ch.send(new Discord.RichEmbed()
-              .setTitle("Ticket chiuso")
-              .setFooter("Ticket chiuso da "+msg.reactions.get('❎').users.first().username,msg.reactions.get('❎').users.first().displayAvatarURL))
-            .then(msg=>msg.react('🗑️'))
+            rejectTicket(msg, utente, ch)
           }
+          })
+          .catch(rejectTicket(msg, utente, ch))
         })
-      }))
+      )
 
 
     reaction.remove(utente);
