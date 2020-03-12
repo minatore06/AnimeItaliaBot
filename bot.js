@@ -112,7 +112,7 @@ client.on('ready', () => {
     }, 10000); */
 })
 
-client.on('message', async (message) =>{
+client.on('message', async message =>{
   let messageAr =  message.content.split(" ");
   let cmd = messageAr[0];
   let args = messageAr.slice(1);
