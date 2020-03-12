@@ -544,7 +544,7 @@ client.on('message', async (message) =>{
 
       ////////////////////////////////ECONOMY SYSYEM//////////////////////////////////////////
           if(!talkedNoMoney.has(message.author.id)){
-            eco[message.author.id].pocketMoney+=Math.floor(Math.random() * (15-5+1)) + 5;
+            eco[message.author.id].pocketMoney+=Math.floor(Math.random() * (10-5+1)) + 5;
   
   
             fs.writeFile("./eco.json", JSON.stringify(eco), (err) => {
