@@ -112,7 +112,7 @@ client.on('ready', () => {
     }, 10000); */
 })
 
-client.on('message', async message =>{
+client.on('message', async (message) =>{
   let messageAr =  message.content.split(" ");
   let cmd = messageAr[0];
   let args = messageAr.slice(1);
@@ -151,13 +151,6 @@ client.on('message', async message =>{
       };
     }
   }
-
-  if(cmd.split("").slice(0,2).join('')==prefix+'d'){
-    var n = cmd.split("").slice(2).join('');
-    if(n==""||n==" "||n<2)return message.reply("Nessun numero inserito o numero non valido").then(msg=>eliminazioneMess(message, msg));
-    message.channel.send(Math.floor(Math.random()*(n))+1);
-    return;
-  }
   
   try{
     switch(cmd)
@@ -172,6 +165,11 @@ client.on('message', async message =>{
 
           message.channel.send('```Comandi \nping: permette di vedere il ping del bot \nvmuta: permette di mutare un utente in vocale (solo staffer) \nvsmuta: serve a smutare un utante mutato precedentemente con vmuta (solo staffer) \nmuta: permette di mutare un utente in vocale e non permette di ricollegarsi ad esse per un determinato periodo di tempo (solo staffer) \nsmuta: permette di smutare un utente mutato precdentemente con muta (solo staffer) \n```')
 
+          break;
+
+        case prefix+'d':
+          if(n==""||n==" "||n<2)return message.reply("Nessun numero inserito o numero non valido").then(msg=>eliminazioneMess(message, msg));
+          message.channel.send(Math.floor(Math.random()*(n))+1);
           break;
 
         case prefix+'vmuta'://comando per mutare un utente in vocale
