@@ -160,12 +160,17 @@ client.on('message', async (message) =>{
           const m = await message.reply("pong!");
           m.edit(`**Pong!** Latenza attuale ${m.createdTimestamp - message.createdTimestamp}**ms**. La latenza dell' *API* é ${Math.round(client.ping)}**ms**`);
 
-          break;/*
+          break;
         case prefix+'help':
 
-          message.channel.send('```Comandi \nping: permette di vedere il ping del bot \nvmuta: permette di mutare un utente in vocale (solo staffer) \nvsmuta: serve a smutare un utante mutato precedentemente con vmuta (solo staffer) \nmuta: permette di mutare un utente in vocale e non permette di ricollegarsi ad esse per un determinato periodo di tempo (solo staffer) \nsmuta: permette di smutare un utente mutato precdentemente con muta (solo staffer) \n```')
+          let helpEmbed = new Discord.RichEmbed()
+            .setTitle("Elenco comandi")
+            .setColor('#ff00ff')
+            .setDescription(prefix+'ping: permette di vedere il ping del bot\n'+prefix+'d (n>1): tira un dado con n facce\n'+prefix+"level [@utente]: permette di vedere il proprio livello o dell'utente taggato\n"+prefix+"money [@utente]: permette di vedere i propri soldi o dell'utente taggato\n"+prefix+"give-money (@utente) (n): permette di dare n soldi dal proprio conto all'utente taggato\n"+prefix+"add-money (@utente) (n): permette di dare n soldi all'utente (solo per admin)\n"+prefix+"remove-money (@utente) (n): permette di rimuovere n soldi all'utente (solo per admin)")
+            .setFooter("Prossimi aggiornamenti incentrati sullo shop system")
+          message.channel.send(helpEmbed)
 
-          break;*/
+          break;
 
         case prefix+'d':
           if(n==""||n==" "||n<2)return message.reply("Nessun numero inserito o numero non valido").then(msg=>eliminazioneMess(message, msg));
