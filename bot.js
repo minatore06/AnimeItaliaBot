@@ -160,12 +160,12 @@ client.on('message', async (message) =>{
           const m = await message.reply("pong!");
           m.edit(`**Pong!** Latenza attuale ${m.createdTimestamp - message.createdTimestamp}**ms**. La latenza dell' *API* é ${Math.round(client.ping)}**ms**`);
 
-          break;
+          break;/*
         case prefix+'help':
 
           message.channel.send('```Comandi \nping: permette di vedere il ping del bot \nvmuta: permette di mutare un utente in vocale (solo staffer) \nvsmuta: serve a smutare un utante mutato precedentemente con vmuta (solo staffer) \nmuta: permette di mutare un utente in vocale e non permette di ricollegarsi ad esse per un determinato periodo di tempo (solo staffer) \nsmuta: permette di smutare un utente mutato precdentemente con muta (solo staffer) \n```')
 
-          break;
+          break;*/
 
         case prefix+'d':
           if(n==""||n==" "||n<2)return message.reply("Nessun numero inserito o numero non valido").then(msg=>eliminazioneMess(message, msg));
