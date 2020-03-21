@@ -102,9 +102,9 @@ client.on('ready', () => {
           var dnd = client.guilds.get(gu).members.filter(m => m.presence.status === 'dnd').size
           var afk = client.guilds.get(gu).members.filter(m => m.presence.status === 'idle').size 
           var online = parseInt(on) + parseInt(dnd) + parseInt(afk)
-          var staff = client.guilds.get(gu).roles.get('594960791363518465').members
+          var staff = client.guilds.get(gu).roles.get('683049440700923930').members
           var staffOnline = staff.size - staff.filter(m => m.presence.status === 'offline').size
-          var utentiVocal = client.guilds.get(gu).roles.get('595345228420874279').members.size-1
+          var utentiVocal = client.guilds.get(gu).roles.get('690873576508751932').members.size
 
           client.channels.get(ch1).setName("👮‍♂️ staff_online_" + staffOnline)
           client.channels.get(ch2).setName("📢Connessi in vocal: " + utentiVocal)
