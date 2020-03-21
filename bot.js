@@ -86,12 +86,12 @@ function rejectTicket(msg, utente, ch){
 client.on('ready', () => {
   console.log('Wow il bot è online')
   client.channels.get("684164625289576489").fetchMessage("684164646466355201");
-  /*
+  
   setInterval(() => {
   
-  var ch1 = "594960849920327711" //channel1 id
-  var ch2 = "596265176827822102" //channel2 id
-  var ch3 = "595164592259334154" //channel3 id
+  var ch1 = "690874112809369660" //channel1 id
+  var ch2 = "690874154538238020" //channel2 id
+  var ch3 = "690874196171030578" //channel3 id
 
           if(!client.guilds.get(gu)) return
           if(!client.channels.get(ch1)) return
@@ -109,7 +109,7 @@ client.on('ready', () => {
           client.channels.get(ch1).setName("👮‍♂️ staff_online_" + staffOnline)
           client.channels.get(ch2).setName("📢Connessi in vocal: " + utentiVocal)
           client.channels.get(ch3).setName("✔ Online: " + online)
-    }, 10000); */
+    }, 10000); 
 })
 
 client.on('message', async (message) =>{
@@ -679,7 +679,7 @@ client.on('messageReactionAdd', async (reaction, utente) => {
         filtro = (reaction, user) => {
           return ['✅', '❎'].includes(reaction.emoji.name) && user.id!=client.user.id
         }
-        await msg.awaitReactions(filtro, {max: 1, time:600000, errors:['time']})
+        await msg.awaitReactions(filtro, {max: 1, time:43200000, errors:['time']})
         .then(async function(){
           await wait(1000)
           console.log(msg.reactions.get('✅').count)
@@ -742,7 +742,7 @@ client.on('messageReactionAdd', async (reaction, utente) => {
 })*/
 
 
-/*client.on('voiceStateUpdate', (oldMembro, newMembro) => {
+client.on('voiceStateUpdate', (oldMembro, newMembro) => {
   let ruolo = newMembro.guild.roles.find(role => role.name === 'vocal')
 
   if(newMembro.voiceChannel!=undefined && oldMembro.voiceChannel === undefined) {
@@ -752,7 +752,7 @@ client.on('messageReactionAdd', async (reaction, utente) => {
   }
   
   
-})*/
+})
 
 
 
