@@ -109,7 +109,7 @@ client.on('ready', () => {
           client.channels.get(ch1).setName("👮‍♂️ staff_online_" + staffOnline)
           client.channels.get(ch2).setName("📢Connessi in vocal: " + utentiVocal)
           client.channels.get(ch3).setName("✔ Online: " + online)
-    }, 10000); 
+    }, 60000); 
 })
 
 client.on('message', async (message) =>{
