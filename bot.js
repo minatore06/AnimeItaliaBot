@@ -613,6 +613,7 @@ client.on('message', async (message) =>{
   
   catch(err){
     message.channel.send("Oh no!!! C'è stato un errore\n```"+err+'```')
+    sayError(message)
   }
 })
 
