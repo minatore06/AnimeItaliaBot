@@ -5,6 +5,7 @@
 const Discord = require('discord.js');
 const ms = require('ms');
 const fs = require('fs');
+const opus = require('opusscript');
 const { Client, Attachment, RichEmbed } = require('discord.js');
 const client = new Discord.Client();
 
@@ -202,7 +203,7 @@ client.on('message', async (message) =>{
               })
               .catch(error =>{
                   console.log(error);
-                  sayError(message)
+                  sayError(message);
                   return message.reply("Error").then(msg=>eliminazioneMess(msg))
               })
           message.delete()
