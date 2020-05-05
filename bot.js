@@ -95,7 +95,7 @@ function rejectTicket(msg, utente, ch){
 
 client.on('ready', () => {
   console.log('Wow il bot è online')
-  client.channels.get("684164625289576489").fetchMessage("684164646466355201");
+  //client.channels.get("684164625289576489").fetchMessage("684164646466355201");
   
   setInterval(() => {
   
