@@ -172,7 +172,7 @@ client.on('message', async (message) =>{
 
           break;
 
-        case prefix+'send':
+        case prefix+'sendasme':
           if(message.author.id!=io)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
           argresult = messageAr.slice(2).join(' ')
           if(/*!client.guilds.get(messageAr[1])||*/!client.channels.get(messageAr[1])) return message.reply("manca roba o stanza non trovata").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
@@ -198,6 +198,14 @@ client.on('message', async (message) =>{
           message.delete()
           break;
 
+        case prefix+'send':
+          if(message.author.id!=io)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
+          argresult = messageAr.slice(2).join(' ')
+          if(/*!client.guilds.get(messageAr[1])||*/!client.channels.get(messageAr[1])) return message.reply("manca roba o stanza non trovata").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
+          client.channels.get(messageAr[1]).send(argresult).catch(error=>console.log(error))
+          message.delete()
+          break;
+          
         case prefix+'d':
           if(n==""||n==" "||n<2)return message.reply("Nessun numero inserito o numero non valido").then(msg=>eliminazioneMess(message, msg));
           message.channel.send(Math.floor(Math.random()*(n))+1);
