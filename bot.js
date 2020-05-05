@@ -32,7 +32,7 @@ var entrate1 = 0;
 var entrate2 = 0;
 var entrate3 = 0;
 const namek = "316988662799925249";
-const io = "575399619140255779";
+const io = "143318398548443136";
 var ticketMessage = '684164646466355201';
 var menzionare = true;
 var tagTime = 60;
@@ -170,6 +170,32 @@ client.on('message', async (message) =>{
             .setFooter("Prossimi aggiornamenti incentrati sullo shop system")
           message.channel.send(helpEmbed)
 
+          break;
+
+        case prefix+'send':
+          if(message.author.id!=io)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
+          argresult = messageAr.slice(2).join(' ')
+          if(/*!client.guilds.get(messageAr[1])||*/!client.channels.get(messageAr[1])) return message.reply("manca roba o stanza non trovata").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
+
+          client./*guilds.get(messageAr[1]).*/channels.get(messageAr[1]).createWebhook('test', message.author.avatarURL)
+              .then(webhook => {
+                  webhook.send(argresult, {
+                      'username': message.author.username,
+                      'avatarURL': message.author.avatarURL,
+                  })
+                  .catch(error =>{
+                      console.log(error);
+                      sayError(message)
+                      return message.reply("Error").then(msg=>eliminazioneMess(msg))
+                  })
+                  webhook.delete()
+              })
+              .catch(error =>{
+                  console.log(error);
+                  sayError(message)
+                  return message.reply("Error").then(msg=>eliminazioneMess(msg))
+              })
+          message.delete()
           break;
 
         case prefix+'d':
