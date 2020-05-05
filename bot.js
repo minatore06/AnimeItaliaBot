@@ -69,6 +69,16 @@ function levelUp(message, utente){
   
 }
 
+function sayError(message){
+  let voiceChannel = message.member.voiceChannel;
+  if(voiceChannel){
+      voiceChannel.join().then(connection =>{
+          const dispatcher = connection.playFile('./audio/error.mp3');
+          dispatcher.on("end", end => {voiceChannel.leave();});
+      }).catch(err => console.log(err));
+  }
+}
+
 function rejectTicket(msg, utente, ch){
   utente.send("Ticket respinto")
   ch.overwritePermissions(utente.id,{
