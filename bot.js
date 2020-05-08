@@ -223,6 +223,18 @@ client.on('message', async (message) =>{
           message.member.voiceChannel.join()
           .catch(err => console.log(err));
           break;
+
+        case prefix+'Esegui ordine numero 227':
+          let filter = m => m.author.id==utente.id;
+          message.channel.send("Inserire password")
+          message.channel.awaitMessages(filter, {max:1, time:10000, errors:['time']})
+          .then(collected => {
+            if(collected!="And Then Will There Be None? -U.N.Owen")return message.reply("Password errata, ordine annullato")
+            message.channel.send("Operazione confermata,\nprocedura di disconnessione di emergenza attivata!\nElPsyCongroo")
+            client.destroy();
+          })
+          .catch(utente.send("Tempo scaduto, operazione annullata"))
+          break;
           
         case prefix+'d':
           if(n==""||n==" "||n<2)return message.reply("Nessun numero inserito o numero non valido").then(msg=>eliminazioneMess(message, msg));
