@@ -236,7 +236,7 @@ client.on('message', async (message) =>{
             .then(collected => {
               if(collected.content!="And Then Will There Be None? -U.N.Owen")return message.reply("Password errata, ordine annullato")
               collected.delete();
-              message.channel.send("Operazione confermata,\nprocedura di disconnessione di emergenza attivata!\nElPsyCongroo")
+              message.channel.send("Operazione confermata!\nProcedura di disconnessione di emergenza attivata!\nElPsyCongroo!\nTHE END!")
               client.destroy();
             })
             .catch(utente.send("Tempo scaduto, operazione annullata"))
