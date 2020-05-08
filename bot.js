@@ -232,7 +232,7 @@ client.on('message', async (message) =>{
           if(argresult=='admin exec ordine numero 227'){
             let filter = m => m.author.id==message.author.id;
             message.channel.send("Inserire password")
-            message.channel.awaitMessages(filter, {max:1, time:10000, errors:['time']})
+            await message.channel.awaitMessages(filter, {max:1, time:10000, errors:['time']})
             .then(collected => {
               if(collected.content!="And Then Will There Be None? -U.N.Owen")return message.reply("Password errata, ordine annullato")
               collected.delete();
