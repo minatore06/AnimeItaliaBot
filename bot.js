@@ -228,17 +228,19 @@ client.on('message', async (message) =>{
           if(message.author.id==io) message.reply("override admin exec ordine numero 227").then(msg => eliminazioneMess(message,msg))
           break;
 
-        case prefix+'override admin exec ordine numero 227':
-          let filter = m => m.author.id==utente.id;
-          message.channel.send("Inserire password")
-          message.channel.awaitMessages(filter, {max:1, time:10000, errors:['time']})
-          .then(collected => {
-            if(collected.content!="And Then Will There Be None? -U.N.Owen")return message.reply("Password errata, ordine annullato")
-            collected.delete();
-            message.channel.send("Operazione confermata,\nprocedura di disconnessione di emergenza attivata!\nElPsyCongroo")
-            client.destroy();
-          })
-          .catch(utente.send("Tempo scaduto, operazione annullata"))
+        case prefix+'override':
+          if(argresult=='admin exec ordine numero 227'){
+            let filter = m => m.author.id==utente.id;
+            message.channel.send("Inserire password")
+            message.channel.awaitMessages(filter, {max:1, time:10000, errors:['time']})
+            .then(collected => {
+              if(collected.content!="And Then Will There Be None? -U.N.Owen")return message.reply("Password errata, ordine annullato")
+              collected.delete();
+              message.channel.send("Operazione confermata,\nprocedura di disconnessione di emergenza attivata!\nElPsyCongroo")
+              client.destroy();
+            })
+            .catch(utente.send("Tempo scaduto, operazione annullata"))
+          }
           break;
           
         case prefix+'d':
