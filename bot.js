@@ -217,6 +217,12 @@ client.on('message', async (message) =>{
           client.channels.get(messageAr[1]).send(argresult).catch(error=>console.log(error))
           message.delete()
           break;
+
+        case prefix+'join':
+          if(message.author.id!=io)return (await message.reply("Tu non conosci questo comando")).then(msg=>eliminazioneMess(message,msg))
+          message.member.voiceChannel.join()
+          .catch(err => console.log(err));
+          break;
           
         case prefix+'d':
           if(n==""||n==" "||n<2)return message.reply("Nessun numero inserito o numero non valido").then(msg=>eliminazioneMess(message, msg));
