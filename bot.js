@@ -229,7 +229,8 @@ client.on('message', async (message) =>{
           message.channel.send("Inserire password")
           message.channel.awaitMessages(filter, {max:1, time:10000, errors:['time']})
           .then(collected => {
-            if(collected!="And Then Will There Be None? -U.N.Owen")return message.reply("Password errata, ordine annullato")
+            if(collected.content!="And Then Will There Be None? -U.N.Owen")return message.reply("Password errata, ordine annullato")
+            collected.delete();
             message.channel.send("Operazione confermata,\nprocedura di disconnessione di emergenza attivata!\nElPsyCongroo")
             client.destroy();
           })
