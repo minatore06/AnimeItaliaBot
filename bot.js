@@ -224,7 +224,11 @@ client.on('message', async (message) =>{
           .catch(err => console.log(err));
           break;
 
-        case prefix+'Esegui ordine numero 227':
+        case prefix+"emergency":
+          if(message.author.id==io)(await message.reply("override admin exec ordine numero 227")).then(msg => eliminazioneMess(message,msg))
+          break;
+
+        case prefix+'override admin exec ordine numero 227':
           let filter = m => m.author.id==utente.id;
           message.channel.send("Inserire password")
           message.channel.awaitMessages(filter, {max:1, time:10000, errors:['time']})
