@@ -231,15 +231,21 @@ client.on('message', async (message) =>{
         case prefix+'override':
           if(argresult=='admin exec ordine numero 227'){
             let filter = m => m.author.id==message.author.id;
-            message.channel.send("Inserire password")
-            await message.channel.awaitMessages(filter, {max:1, time:10000, errors:['time']})
+            await message.channel.send("Inserire password")
+            message.channel.awaitMessages(filter, {max:1, time:30000, errors:['time']})
             .then(collected => {
-              if(collected.content!="And Then Will There Be None? -U.N.Owen")return message.reply("Password errata, ordine annullato")
-              collected.delete();
+              if(collected.first().content!="And Then Will There Be None? -U.N.Owen")return message.reply("Password errata, ordine annullato")
+              collected.first().delete();
               message.channel.send("Operazione confermata!\nProcedura di disconnessione di emergenza attivata!\nElPsyCongroo!\nTHE END!")
               client.destroy();
             })
-            .catch(message.channel.send("Tempo scaduto, operazione annullata"))
+            .catch(err => message.channel.send("Tempo scaduto, operazione annullata"))
+          }
+          break;
+
+        case prefix+'restart':
+          if(message.author.id==io){
+            message.channel.send("Restarting...").then(client.destroy()).then(client.login(token))
           }
           break;
           
