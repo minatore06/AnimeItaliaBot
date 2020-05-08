@@ -34,7 +34,7 @@ var entrate2 = 0;
 var entrate3 = 0;
 const namek = "316988662799925249";
 const io = "143318398548443136";
-var ticketMessage = '684164646466355201';
+var ticketMessage = '708369096571617472';
 var menzionare = true;
 var tagTime = 60;
 var pingRole;
@@ -82,6 +82,7 @@ function sayError(message){
 
 function rejectTicket(msg, utente, ch){
   utente.send("Ticket respinto")
+  ticket[utente.id].nTickets=parseInt(ticket[utente.id].nTickets)-1;
   ch.overwritePermissions(utente.id,{
       VIEW_CHANNEL:false
   })
@@ -96,7 +97,7 @@ function rejectTicket(msg, utente, ch){
 
 client.on('ready', () => {
   console.log('Wow il bot è online')
-  //client.channels.get("684164625289576489").fetchMessage("684164646466355201");
+  client.channels.get("708368858439876678").fetchMessage(ticketMessage);
   
   setInterval(() => {
   
@@ -641,14 +642,14 @@ client.on('messageReactionAdd', async (reaction, utente) => {
     let createTicketEmbed = new Discord.RichEmbed()
       .setTitle("Creazione support ticket")
       .setDescription("Inserire l'oggetto del ticket")
-      .setFooter("Dopo 30 secondi l'operazione verrà cancellata")
+      .setFooter("Dopo 60 secondi l'operazione verrà cancellata")
     utente.send(createTicketEmbed);
 
     let dm = await utente.createDM();
     let filter = m => m.author.id==utente.id;
 
     let ticketEmbed = new Discord.RichEmbed();
-    await dm.awaitMessages(filter, {max:1, time:30000, errors:['time']})
+    await dm.awaitMessages(filter, {max:1, time:60000, errors:['time']})
       .then(collected => ticketEmbed.setTitle(collected.first().content))
       .catch(function(){utente.send("Operazione annullata")
       cancel=true;
@@ -658,7 +659,7 @@ client.on('messageReactionAdd', async (reaction, utente) => {
     createTicketEmbed.setDescription("Inserire una descrizione per il ticket")
     utente.send(createTicketEmbed);
 
-    await dm.awaitMessages(filter, {max:1, time:30000, errors:['time']})
+    await dm.awaitMessages(filter, {max:1, time:60000, errors:['time']})
       .then(collected => ticketEmbed.setDescription(collected.first().content))
       .catch(function(){utente.send("Operazione annullata")
       cancel=true;
@@ -674,14 +675,14 @@ client.on('messageReactionAdd', async (reaction, utente) => {
     let filtro = (reaction, user) => {
       return ['✅', '❎'].includes(reaction.emoji.name) && user.id===utente.id
     }
-    await dm.lastMessage.awaitReactions(filtro, {max: 1, time:30000, errors:['time']})
+    await dm.lastMessage.awaitReactions(filtro, {max: 1, time:60000, errors:['time']})
       .then(async function(){
         if(dm.lastMessage.reactions.get('✅').users.get(utente.id)){
           createTicketEmbed.setDescription("Inviare uno screenshot");
-          createTicketEmbed.setFooter("Dopo 60 secondi l'operazione verrà cancellata")
+          createTicketEmbed.setFooter("Dopo 180 secondi l'operazione verrà cancellata")
           utente.send(createTicketEmbed);
 
-          await dm.awaitMessages(filter, {max:1, time:60000, errors:['time']})
+          await dm.awaitMessages(filter, {max:1, time:180000, errors:['time']})
             .then(() => {
               ticketEmbed.setImage(utente.lastMessage.attachments.first().url);
             })
@@ -725,7 +726,7 @@ client.on('messageReactionAdd', async (reaction, utente) => {
         filtro = (reaction, user) => {
           return ['✅', '❎'].includes(reaction.emoji.name) && user.id!=client.user.id
         }
-        await msg.awaitReactions(filtro, {max: 1, time:43200000, errors:['time']})
+        await msg.awaitReactions(filtro, {max: 1, time:86400000, errors:['time']})
         .then(async function(){
           await wait(1000)
           console.log(msg.reactions.get('✅').count)
@@ -733,8 +734,8 @@ client.on('messageReactionAdd', async (reaction, utente) => {
           if(msg.reactions.get('✅').count>1){
             utente.send("Ticket accettato")
             ch.overwritePermissions(utente.id,{
-                SEND_MESSAGES:true
-              })
+              SEND_MESSAGES:true
+            })
           }
 
           if(msg.reactions.get('❎').count>1){
