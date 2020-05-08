@@ -225,7 +225,7 @@ client.on('message', async (message) =>{
           break;
 
         case prefix+"emergency":
-          if(message.author.id==io)(await message.reply("override admin exec ordine numero 227")).then(msg => eliminazioneMess(message,msg))
+          if(message.author.id==io) message.reply("override admin exec ordine numero 227").then(msg => eliminazioneMess(message,msg))
           break;
 
         case prefix+'override admin exec ordine numero 227':
