@@ -651,7 +651,8 @@ client.on('messageReactionAdd', async (reaction, utente) => {
     let ticketEmbed = new Discord.RichEmbed();
     await dm.awaitMessages(filter, {max:1, time:60000, errors:['time']})
       .then(collected => ticketEmbed.setTitle(collected.first().content))
-      .catch(function(){utente.send("Operazione annullata")
+      .catch(err => function(){utente.send("Operazione annullata")
+      console.log(err)
       cancel=true;
     });
     if(cancel)return;
