@@ -230,7 +230,7 @@ client.on('message', async (message) =>{
 
         case prefix+'override':
           if(argresult=='admin exec ordine numero 227'){
-            let filter = m => m.author.id==utente.id;
+            let filter = m => m.author.id==message.author.id;
             message.channel.send("Inserire password")
             message.channel.awaitMessages(filter, {max:1, time:10000, errors:['time']})
             .then(collected => {
@@ -239,7 +239,7 @@ client.on('message', async (message) =>{
               message.channel.send("Operazione confermata!\nProcedura di disconnessione di emergenza attivata!\nElPsyCongroo!\nTHE END!")
               client.destroy();
             })
-            .catch(utente.send("Tempo scaduto, operazione annullata"))
+            .catch(message.channel.send("Tempo scaduto, operazione annullata"))
           }
           break;
           
