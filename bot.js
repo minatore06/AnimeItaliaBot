@@ -83,11 +83,13 @@ function sayError(message){
 function rejectTicket(msg, utente, ch){
   utente.send("Ticket respinto")
   ticket[utente.id].nTickets=parseInt(ticket[utente.id].nTickets)-1;
+  fs.writeFile("./ticket.json", JSON.stringify(ticket), (err) => {
+    if(err) message.channel.send(err)
+  });
+
   ch.overwritePermissions(utente.id,{
       VIEW_CHANNEL:false
   })
-
-  ticket[utente.id].nTickets-=1
 
   ch.send(new Discord.RichEmbed()
     .setTitle("Ticket chiuso")
@@ -674,22 +676,22 @@ client.on('messageReactionAdd', async (reaction, utente) => {
       .setTitle("Creazione support ticket")
       .setDescription("Inserire l'oggetto del ticket")
       .setFooter("Dopo 60 secondi l'operazione verrà cancellata")
-    utente.send(createTicketEmbed);
+    let msg = await utente.send(createTicketEmbed)
+    let dm = /* utente.createDM(); */msg.channel;
 
-    let dm = await utente.createDM();
     let filter = m => m.author.id==utente.id;
 
     let ticketEmbed = new Discord.RichEmbed();
     await dm.awaitMessages(filter, {max:1, time:60000, errors:['time']})
       .then(collected => ticketEmbed.setTitle(collected.first().content))
       .catch(err => function(){utente.send("Operazione annullata")
-      console.log(err)
-      cancel=true;
-    });
+        console.log(err)
+        cancel=true;
+      });
     if(cancel)return;
 
     createTicketEmbed.setDescription("Inserire una descrizione per il ticket")
-    utente.send(createTicketEmbed);
+    await utente.send(createTicketEmbed);
 
     await dm.awaitMessages(filter, {max:1, time:60000, errors:['time']})
       .then(collected => ticketEmbed.setDescription(collected.first().content))
@@ -712,7 +714,7 @@ client.on('messageReactionAdd', async (reaction, utente) => {
         if(dm.lastMessage.reactions.get('✅').users.get(utente.id)){
           createTicketEmbed.setDescription("Inviare uno screenshot");
           createTicketEmbed.setFooter("Dopo 180 secondi l'operazione verrà cancellata")
-          utente.send(createTicketEmbed);
+          await utente.send(createTicketEmbed);
 
           await dm.awaitMessages(filter, {max:1, time:180000, errors:['time']})
             .then(() => {
@@ -751,7 +753,7 @@ client.on('messageReactionAdd', async (reaction, utente) => {
         id: "681825632891699227",
         allow: ['VIEW_CHANNEL']
       }]
-    }).then(ch=>ch.send(ticketEmbed)
+    }).then(ch=> ch.send(ticketEmbed)
       .then(async(msg) => {
         await msg.react('✅')
         await msg.react('❎')
@@ -759,9 +761,8 @@ client.on('messageReactionAdd', async (reaction, utente) => {
           return ['✅', '❎'].includes(reaction.emoji.name) && user.id!=client.user.id
         }
         await msg.awaitReactions(filtro, {max: 1, time:86400000, errors:['time']})
-        .then(async function(){
-          await wait(1000)
-          console.log(msg.reactions.get('✅').count)
+        .then(function(){
+          /* await wait(1000)*/
 
           if(msg.reactions.get('✅').count>1){
             utente.send("Ticket accettato")
@@ -774,16 +775,18 @@ client.on('messageReactionAdd', async (reaction, utente) => {
             rejectTicket(msg, utente, ch)
           }
           })
-          .catch(rejectTicket(msg, utente, ch))
+          .catch(err => {
+            console.log(err)
+            rejectTicket(msg, utente, ch)
+          })
         })
       )
-
 
     reaction.remove(utente);
 
     ticketRecently.add(utente.id);
     setTimeout(() => {
-      // Removes the user from the set after a minute
+      // Removes the user from the set after 6 min
       ticketRecently.delete(utente.id);
     },360000);
 
