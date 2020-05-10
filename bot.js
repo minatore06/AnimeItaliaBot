@@ -228,8 +228,8 @@ client.on('message', async (message) =>{
 
         case prefix+'avatar':
           if(!message.mentions.members.first())return (await message.reply(message.author.avatarURL())).then(message.delete());
-          let utente = client.users.get(message.mentions.members.first().id)
-          message.channel.send(utente.avatarURL());
+          let utente = message.mentions.members.first()
+          message.channel.send(utente.user.avatarURL());
           message.delete()
           break;
 
