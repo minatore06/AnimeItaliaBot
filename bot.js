@@ -227,7 +227,7 @@ client.on('message', async (message) =>{
           break;
 
         case prefix+'avatar':
-          if(!message.mentions.members.first())return (await message.reply(message.author.avatarURL).then(message.delete());
+          if(!message.mentions.members.first())return (await message.reply(message.author.avatarURL).then(message.delete()));
           message.channel.send(message.mentions.members.first().user.avatarURL);
           message.delete()
           break;
