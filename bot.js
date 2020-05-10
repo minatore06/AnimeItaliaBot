@@ -717,7 +717,8 @@ client.on('messageReactionAdd', async (reaction, utente) => {
           await utente.send(createTicketEmbed);
 
           await dm.awaitMessages(filter, {max:1, time:180000, errors:['time']})
-            .then(() => {
+            .then(async() => {
+              await wait(2000)
               ticketEmbed.setImage(utente.lastMessage.attachments.first().url);
             })
             .catch(function(){utente.send("Operazione annullata")
@@ -761,7 +762,7 @@ client.on('messageReactionAdd', async (reaction, utente) => {
           return ['✅', '❎'].includes(reaction.emoji.name) && user.id!=client.user.id
         }
         await msg.awaitReactions(filtro, {max: 1, time:86400000, errors:['time']})
-        .then(function(){
+        .then(async function(){
           /* await wait(1000)*/
 
           if(msg.reactions.get('✅').count>1){
@@ -769,10 +770,35 @@ client.on('messageReactionAdd', async (reaction, utente) => {
             ch.overwritePermissions(utente.id,{
               SEND_MESSAGES:true
             })
+            msg.reactions.get('✅').remove()
+            msg.reactions.get('❎').remove()
+            msg.channel.send("Ticket accettato da un membro della staff")
+            await msg.react('🔒')
+            filtro = (reaction, user) => {
+              return ['🔒'].includes(reaction.emoji.name) && user.id!=client.user.id
+            }
+            await msg.awaitReactions(filtro, {max:1, time:259200000, errors:['time']})
+            .then(function(){
+              ticket[utente.id].nTickets=parseInt(ticket[utente.id].nTickets)-1;
+              fs.writeFile("./ticket.json", JSON.stringify(ticket), (err) => {
+                if(err) message.channel.send(err)
+              });
+
+              ch.overwritePermissions(utente.id,{
+                  VIEW_CHANNEL:false
+              })
+
+              ch.send(new Discord.RichEmbed()
+                .setTitle("Ticket chiuso")
+                .setFooter("Ticket chiuso da "+msg.reactions.get('❎').users.first().username,msg.reactions.get('❎').users.first().displayAvatarURL))
+              .then(msg=>msg.react('🗑️'))
+            })
           }
 
           if(msg.reactions.get('❎').count>1){
             rejectTicket(msg, utente, ch)
+            msg.reactions.get('✅').remove()
+            msg.reactions.get('❎').remove()
           }
           })
           .catch(err => {
