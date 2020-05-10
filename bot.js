@@ -226,6 +226,13 @@ client.on('message', async (message) =>{
           .catch(err => console.log(err));
           break;
 
+        case prefix+'avatar':
+          if(!message.mentions.members.first())return (await message.reply(message.author.avatarURL)).then(message.delete());
+          let utente = client.users.get(message.mentions.members.first())
+          message.reply(utente.avatarURL);
+          message.delete()
+          break;
+
         case prefix+"emergency":
           if(message.author.id==io) message.reply("override admin exec ordine numero 227").then(msg => eliminazioneMess(message,msg))
           break;
