@@ -94,7 +94,35 @@ function rejectTicket(msg, utente, ch){
   ch.send(new Discord.RichEmbed()
     .setTitle("Ticket chiuso")
     .setFooter("Ticket chiuso da "+msg.reactions.get('❎').users.first().username,msg.reactions.get('❎').users.first().displayAvatarURL))
-  .then(msg=>msg.react('🗑️'))
+  .then(async msg=>{
+    await msg.react('🗑️')
+    deleteTicket(msg, false)
+  })
+}
+
+async function deleteTicket(msg, error){
+  let filtro = (reaction, user) => {
+    return ['🗑️'].includes(reaction.emoji.name) && user.id!=client.user.id
+  }
+  await msg.awaitReactions(filtro, {max:1, time: 259200000, errors:['time']})
+  .then(async ()=>{
+    if(!error)await msg.reactions.get('🗑️').remove()
+    await client.channels.get('709356758916923443').send(new Discord.RichEmbed()
+    .setAuthor("Ticket #"+msg.channel.name, client.user.displayAvatarURL)
+    .setColor('#000000')
+    .setFooter("Ticket eliminato da "+msg.reactions.get('🗑️').users.first().username,msg.reactions.get('🗑️').users.first().displayAvatarURL))
+    
+    msg.channel.delete();
+  })
+  .catch(async (err)=> {
+    console.log(err)
+    await client.channels.get('709356758916923443').send(new Discord.RichEmbed()
+    .setAuthor("Ticket #"+msg.channel.name, client.user.displayAvatarURL)
+    .setColor('#000000')
+    .setFooter("Ticket eliminato da "+msg.reactions.get('🗑️').users.first().username,msg.reactions.get('🗑️').users.first().displayAvatarURL))
+    
+    msg.channel.delete();
+  })
 }
 
 client.on('ready', () => {
@@ -209,6 +237,34 @@ client.on('message', async (message) =>{
                   sayError(message);
                   return message.reply("Error").then(msg=>eliminazioneMess(msg))
               })
+          message.delete()
+          break;
+
+        case prefix+'sendas':
+          if(message.author.id!=io)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
+          utente = client.users.get(messageAr[2]) || await client.fetchUser(messageAr[2]);
+          stanza = messageAr[1];
+          argresult = messageAr.slice(3).join(' ')
+          if(!client.channels.get(stanza)) return message.reply("manca roba o stanza non trovata").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
+          if(!utente)return message.reply("manca roba o utente non trovato").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
+          client.channels.get(messageAr[1]).createWebhook('test', message.author.avatarURL)
+          .then(webhook => {
+              webhook.send(argresult, {
+                  'username': utente.username,
+                  'avatarURL': utente.avatarURL,
+              })
+              .catch(error =>{
+                  console.log(error);
+                  sayError(message)
+                  return message.reply("Error").then(msg=>eliminazioneMess(msg))
+              })
+              webhook.delete()
+          })
+          .catch(error =>{
+              console.log(error);
+              sayError(message);
+              return message.reply("Error").then(msg=>eliminazioneMess(msg))
+          })
           message.delete()
           break;
 
@@ -746,6 +802,12 @@ client.on('messageReactionAdd', async (reaction, utente) => {
 
     utente.send("Operazione completata, attendi che un membro dello staff accetti il tuo ticket")
 
+    ticketRecently.add(utente.id);
+    setTimeout(() => {
+      // Removes the user from the set after 6 min
+      ticketRecently.delete(utente.id);
+    },360000);
+
     await reaction.message.guild.createChannel(s, {
       type:"text",
       permissionOverwrites: [{
@@ -770,7 +832,6 @@ client.on('messageReactionAdd', async (reaction, utente) => {
         await msg.awaitReactions(filtro, {max: 1, time:86400000, errors:['time']})
         .then(async function(){
           /* await wait(1000)*/
-
           if(msg.reactions.get('✅').count>1){
             utente.send("Ticket accettato")
             ch.overwritePermissions(utente.id,{
@@ -778,13 +839,14 @@ client.on('messageReactionAdd', async (reaction, utente) => {
             })
             msg.reactions.get('✅').remove()
             msg.reactions.get('❎').remove()
+
             msg.channel.send("Ticket accettato da un membro della staff")
             await msg.react('🔒')
             filtro = (reaction, user) => {
               return ['🔒'].includes(reaction.emoji.name) && user.id!=client.user.id
             }
             await msg.awaitReactions(filtro, {max:1, time:259200000, errors:['time']})
-            .then(function(){
+            .then(async function(){
               ticket[utente.id].nTickets=parseInt(ticket[utente.id].nTickets)-1;
               fs.writeFile("./ticket.json", JSON.stringify(ticket), (err) => {
                 if(err) message.channel.send(err)
@@ -794,17 +856,38 @@ client.on('messageReactionAdd', async (reaction, utente) => {
                   VIEW_CHANNEL:false
               })
 
+              await msg.reactions.get('🔒').remove()
               ch.send(new Discord.RichEmbed()
                 .setTitle("Ticket chiuso")
-                .setFooter("Ticket chiuso da "+msg.reactions.get('❎').users.first().username,msg.reactions.get('❎').users.first().displayAvatarURL))
-              .then(msg=>msg.react('🗑️'))
+                .setFooter("Ticket chiuso da "+msg.reactions.get('🔒').users.first().username,msg.reactions.get('🔒').users.first().displayAvatarURL))
+              .then(async msg=>{
+                await msg.react('🗑️')
+                deleteTicket(msg, false)
+              })
+            })
+            .catch(err => {
+              console.log(err)
+              ticket[utente.id].nTickets=parseInt(ticket[utente.id].nTickets)-1;
+              fs.writeFile("./ticket.json", JSON.stringify(ticket), (err) => {
+                if(err) message.channel.send(err)
+              });
+              ch.overwritePermissions(utente.id,{
+                VIEW_CHANNEL:false
+              })
+              ch.send(new Discord.RichEmbed()
+              .setTitle("Ticket chiuso")
+              .setFooter("Ticket chiuso da "+msg.reactions.get('🔒').users.first().username,msg.reactions.get('🔒').users.first().displayAvatarURL))
+              .then(async msg=>{
+                await msg.react('🗑️')
+                deleteTicket(msg, true)
+              })
             })
           }
-
-          if(msg.reactions.get('❎').count>1){
-            rejectTicket(msg, utente, ch)
+          
+          else if(msg.reactions.get('❎').count>1){
             msg.reactions.get('✅').remove()
             msg.reactions.get('❎').remove()
+            rejectTicket(msg, utente, ch)
           }
           })
           .catch(err => {
@@ -815,12 +898,6 @@ client.on('messageReactionAdd', async (reaction, utente) => {
       )
 
     reaction.remove(utente);
-
-    ticketRecently.add(utente.id);
-    setTimeout(() => {
-      // Removes the user from the set after 6 min
-      ticketRecently.delete(utente.id);
-    },360000);
 
     fs.writeFile("./ticket.json", JSON.stringify(ticket), (err) => {
       if(err) message.channel.send(err)
