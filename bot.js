@@ -13,6 +13,7 @@ const config = require("./config.json");
 var xp = require("./xp.json");
 var eco = require("./eco.json");
 var ticket = require("./ticket.json");
+var nextLv = require("./nextLv.json");
 
 const bOwner = config.ownerID;
 const prefix = config.prefix;
@@ -56,18 +57,21 @@ function wait(ms){
 }
 
 function levelUp(message, utente){
+  let xpNec = 0;
+  for (let i = 1; i <= xp[utente.id].level; i++) {
+    xpNec += nextLv[i.toString()];
+  }
   let lvlEmbed = new Discord.RichEmbed()
     .setAuthor(utente.username)
     .setColor('#14c5a2')
     .addField('Level', xp[utente.id].level, true)
     .addField('XP', xp[utente.id].xp, true)
-    .setFooter(Math.floor(xp[utente.id].level*100*Math.PI)+Math.floor((xp[utente.id].level-1)*100*Math.PI/2)-xp[utente.id].xp+" XP per il prossimo livello", utente.displayAvatarURL);
-
+    .setFooter(xpNec-xp[utente.id].xp+" XP per il prossimo livello", utente.displayAvatarURL);
+  
   message.channel.send(lvlEmbed).then(msg => {
     msg.delete(20000)
     message.delete(5000)
   });
-  
 }
 
 function sayError(message){
@@ -640,6 +644,44 @@ client.on('message', async (message) =>{
               if(err) message.channel.send(err)
             });
             break;
+
+          case prefix+'allLevel':
+            let levelEmbed = new Discord.RichEmbed()
+              .setAuthor(client.user.username, client.user.displayAvatarURL)
+            nextLv[1] = Math.floor(1*100*Math.PI);
+            let s = "Level 1: "+Math.floor(1*100*Math.PI);
+            for (let i = 2; i < 100; i++) {
+              let xpNeed = Math.floor(i*100*Math.PI)+Math.floor((i-1)*100*Math.PI/2);
+              nextLv[i] = Math.floor(i*100*Math.PI)+Math.floor((i-1)*100*Math.PI/2);
+              s+="\nLevel "+i+": "+ xpNeed
+            }
+            levelEmbed.setDescription(s);
+            message.channel.send(levelEmbed);
+
+            fs.writeFile("./nextLv.json", JSON.stringify(nextLv), (err) => {
+              if(err) message.channel.send(err)
+            });
+            break;
+
+          case prefix+'restartLevel':
+            if(message.author.id!=io)return;
+            var xpNec;
+            for(var key in xp){
+              for (let i = 1; i < 100; i++) {
+                xpNec = 0;
+                for (let j = 1; j <= i; j++) {
+                  xpNec += nextLv[j.toString()];
+                }
+                if(xp[key].xp<xpNec){
+                  xp[key].level = i;
+                  break;
+                }
+              }
+            }
+            fs.writeFile("./xp.json", JSON.stringify(xp), (err) => {
+              if(err) message.channel.send(err)
+            });
+            break;
       }
   
   
@@ -649,10 +691,12 @@ client.on('message', async (message) =>{
         if(message.channel.guild.id!=gu)return;
       //////////////////////////////////LEVEL SYSYEM//////////////////////////////////////////
           if (!talkedRecently.has(message.author.id)) {
-            let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI/2);
-            
+            //let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI/2);
+            let nextLvXp = 0;
             xp[message.author.id].xp+=Math.floor(Math.random() * (20-5+1)) + 5;
-            
+            for (let i = 1; i <= xp[message.author.id].level; i++) {
+              nextLvXp += nextLv[i.toString()];
+            }
             if(xp[message.author.id].xp>=nextLvXp){
               xp[message.author.id].level++;
               for(var key in lvRoles){
@@ -661,12 +705,15 @@ client.on('message', async (message) =>{
                   message.reply("Hai guadagnato un nuovo fantastico ruolo!");
                 }
               }
-
+              let xpNec = 0;
+              for (let i = 1; i <= xp[message.author.id].level; i++) {
+                xpNec += nextLv[i.toString()];
+              }
               let lvlEmbed = new Discord.RichEmbed()
                 .setAuthor(message.author.username)
                 .setColor('#82c394')
                 .addField("Congratulazioni", "Sei appena salito di livello, ora sei al lv: "+xp[message.author.id].level, true)
-                .setFooter(Math.floor(xp[message.author.id].level*100*Math.PI+(nextLvXp/2))-xp[message.author.id].xp+" XP per il prossimo livello", message.author.displayAvatarURL);
+                .setFooter(xpNec-xp[message.author.id].xp+" XP per il prossimo livello", message.author.displayAvatarURL);
                 message.channel.send(lvlEmbed).then(msg => {
                   msg.delete(20000)
                 });
