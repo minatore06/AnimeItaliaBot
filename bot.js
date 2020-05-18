@@ -651,8 +651,8 @@ client.on('message', async (message) =>{
             nextLv[1] = Math.floor(1*100*Math.PI);
             let s = "Level 1: "+Math.floor(1*100*Math.PI);
             for (let i = 2; i < 100; i++) {
-              let xpNeed = Math.floor(i*100*Math.PI)+Math.floor((i-1)*100*Math.PI/2);
-              nextLv[i] = Math.floor(i*100*Math.PI)+Math.floor((i-1)*100*Math.PI/2);
+              let xpNeed = Math.floor(i*100*Math.PI)+Math.floor((i-1)*100*Math.PI/4);
+              nextLv[i] = Math.floor(i*100*Math.PI)+Math.floor((i-1)*100*Math.PI/4);
               s+="\nLevel "+i+": "+ xpNeed
             }
             levelEmbed.setDescription(s);
@@ -693,7 +693,7 @@ client.on('message', async (message) =>{
           if (!talkedRecently.has(message.author.id)) {
             //let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI/2);
             let nextLvXp = 0;
-            xp[message.author.id].xp+=Math.floor(Math.random() * (20-5+1)) + 5;
+            xp[message.author.id].xp+=Math.floor(Math.random() * (50-15+1)) + 15;
             for (let i = 1; i <= xp[message.author.id].level; i++) {
               nextLvXp += nextLv[i.toString()];
             }
