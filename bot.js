@@ -66,7 +66,7 @@ function levelUp(message, utente){
     .setColor('#14c5a2')
     .addField('Level', xp[utente.id].level, true)
     .addField('XP', xp[utente.id].xp, true)
-    .setFooter(xpNec-xp[utente.id].xp+" XP per il prossimo livello", utente.displayAvatarURL);
+    .setFooter(Math.floor(xpNec)-Math.floor(xp[utente.id].xp)+" XP per il prossimo livello", utente.displayAvatarURL);
   
   message.channel.send(lvlEmbed).then(msg => {
     msg.delete(20000)
@@ -713,7 +713,7 @@ client.on('message', async (message) =>{
                 .setAuthor(message.author.username)
                 .setColor('#82c394')
                 .addField("Congratulazioni", "Sei appena salito di livello, ora sei al lv: "+xp[message.author.id].level, true)
-                .setFooter(xpNec-xp[message.author.id].xp+" XP per il prossimo livello", message.author.displayAvatarURL);
+                .setFooter(Math.floor(xpNec)-Math.floor(xp[message.author.id].xp)+" XP per il prossimo livello", message.author.displayAvatarURL);
                 message.channel.send(lvlEmbed).then(msg => {
                   msg.delete(20000)
                 });
