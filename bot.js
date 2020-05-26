@@ -96,7 +96,7 @@ function rejectTicket(msg, utente, ch){
       VIEW_CHANNEL:false
   })
 
-  await client.channels.get(logChan).send(new Discord.RichEmbed()
+  client.channels.get(logChan).send(new Discord.RichEmbed()
   .setAuthor("Ticket "+ch.name, client.user.displayAvatarURL)
   .setColor('#D49F07')
   .setDescription("Ticket chiuso da "+msg.reactions.get('❎').users.first().tag))
@@ -866,7 +866,7 @@ client.on('messageReactionAdd', async (reaction, utente) => {
       ticketRecently.delete(utente.id);
     },360000);
 
-    await client.channels.get(logChan).send(new Discord.RichEmbed()
+    client.channels.get(logChan).send(new Discord.RichEmbed()
     .setAuthor("Ticket "+s, client.user.displayAvatarURL)
     .setColor('#E1F512')
     .setDescription("Ticket richiesto da "+utente.tag))
