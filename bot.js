@@ -33,6 +33,7 @@ var xpTemp = 0;
 var entrate1 = 0;
 var entrate2 = 0;
 var entrate3 = 0;
+var logChan = "709356758916923443";
 const namek = "316988662799925249";
 const io = "143318398548443136";
 var ticketMessage = '708369096571617472';
@@ -95,6 +96,12 @@ function rejectTicket(msg, utente, ch){
       VIEW_CHANNEL:false
   })
 
+  await client.channels.get(logChan).send(new Discord.RichEmbed()
+  .setAuthor("Ticket "+ch.name, client.user.displayAvatarURL)
+  .setColor('#D49F07')
+  .setDescription("Ticket chiuso da "+msg.reactions.get('❎').users.first().tag))
+  .setFooter("Mod id: "+msg.reactions.get('❎').users.first().id, msg.reactions.get('❎').users.first().displayAvatarURL)
+
   ch.send(new Discord.RichEmbed()
     .setTitle("Ticket chiuso")
     .setFooter("Ticket chiuso da "+msg.reactions.get('❎').users.first().username,msg.reactions.get('❎').users.first().displayAvatarURL))
@@ -111,20 +118,22 @@ async function deleteTicket(msg, error){
   await msg.awaitReactions(filtro, {max:1, time: 259200000, errors:['time']})
   .then(async ()=>{
     if(!error)await msg.reactions.get('🗑️').remove()
-    await client.channels.get('709356758916923443').send(new Discord.RichEmbed()
+    await client.channels.get(logChan).send(new Discord.RichEmbed()
     .setAuthor("Ticket #"+msg.channel.name, client.user.displayAvatarURL)
     .setColor('#000000')
-    .setFooter("Ticket eliminato da "+msg.reactions.get('🗑️').users.first().username,msg.reactions.get('🗑️').users.first().displayAvatarURL))
-    
+    .setDescription("Ticket eliminato da "+msg.reactions.get('🗑️').users.first().tag))
+    .setFooter("Mod id: "+msg.reactions.get('🗑️').users.first().id,msg.reactions.get('🗑️').users.first().displayAvatarURL)
+
     msg.channel.delete();
   })
   .catch(async (err)=> {
     console.log(err)
-    await client.channels.get('709356758916923443').send(new Discord.RichEmbed()
+    await client.channels.get(logChan).send(new Discord.RichEmbed()
     .setAuthor("Ticket #"+msg.channel.name, client.user.displayAvatarURL)
     .setColor('#000000')
-    .setFooter("Ticket eliminato da "+msg.reactions.get('🗑️').users.first().username,msg.reactions.get('🗑️').users.first().displayAvatarURL))
-    
+    .setDescription("Ticket eliminato da "+msg.reactions.get('🗑️').users.first().tag))
+    .setFooter("ùmod id: "+msg.reactions.get('🗑️').users.first().id,msg.reactions.get('🗑️').users.first().displayAvatarURL)
+
     msg.channel.delete();
   })
 }
@@ -847,6 +856,8 @@ client.on('messageReactionAdd', async (reaction, utente) => {
     while (s.length < 3) s = "0" + s;
     s="#"+s;
 
+    ticketEmbed.setFooter("Ticket richiesto da "+utente.username);
+
     utente.send("Operazione completata, attendi che un membro dello staff accetti il tuo ticket")
 
     ticketRecently.add(utente.id);
@@ -854,6 +865,12 @@ client.on('messageReactionAdd', async (reaction, utente) => {
       // Removes the user from the set after 6 min
       ticketRecently.delete(utente.id);
     },360000);
+
+    await client.channels.get(logChan).send(new Discord.RichEmbed()
+    .setAuthor("Ticket "+s, client.user.displayAvatarURL)
+    .setColor('#E1F512')
+    .setDescription("Ticket richiesto da "+utente.tag))
+    .setFooter("User id: "+utente.id, utente.displayAvatarURL)
 
     await reaction.message.guild.createChannel(s, {
       type:"text",
@@ -888,6 +905,13 @@ client.on('messageReactionAdd', async (reaction, utente) => {
             msg.reactions.get('❎').remove()
 
             msg.channel.send("Ticket accettato da un membro della staff")
+
+            await client.channels.get(logChan).send(new Discord.RichEmbed()
+            .setAuthor("Ticket "+s, client.user.displayAvatarURL)
+            .setColor('#0CCB06')
+            .setDescription("Ticket aperto da (non ho voglia di scrivere da chi)"))
+            .setFooter("User id: 42")
+
             await msg.react('🔒')
             filtro = (reaction, user) => {
               return ['🔒'].includes(reaction.emoji.name) && user.id!=client.user.id
