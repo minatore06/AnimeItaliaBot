@@ -218,10 +218,11 @@ client.on('message', async (message) =>{
 
           break;
         case prefix+'help':
+          var helpEmbed;
           switch(argresult)
           {
             case "level":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("level command")
               .setColor('#ff00ff')
               .addField("Usage", "`/level [@membro]`", false)
@@ -231,7 +232,7 @@ client.on('message', async (message) =>{
               break;
 
             case "money":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("money command")
               .setColor('#ff00ff')
               .addField("Usage", "`/money [@membro]`", false)
@@ -241,7 +242,7 @@ client.on('message', async (message) =>{
               break;
 
             case "give-money":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("give-money command")
               .setColor('#ff00ff')
               .addField("Usage", "`/give-money (@membro) (n)`", false)
@@ -252,7 +253,7 @@ client.on('message', async (message) =>{
               break;
 
             case "add-money":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("add-money command")
               .setColor('#ff00ff')
               .addField("Usage", "`/add-money (@membro) (n)`", false)
@@ -264,7 +265,7 @@ client.on('message', async (message) =>{
               break;
 
             case "remove-money":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("remove-money command")
               .setColor('#ff00ff')
               .addField("Usage", "`/remove-money (@membro) (n)`", false)
@@ -276,7 +277,7 @@ client.on('message', async (message) =>{
               break;
 
             case "vmute":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("vmute command")
               .setColor('#ff00ff')
               .addField("Usage", "`/vmute (@membro)`", false)
@@ -287,7 +288,7 @@ client.on('message', async (message) =>{
               break;
 
             case "vunmute":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("vunmute command")
               .setColor('#ff00ff')
               .addField("Usage", "`/vunmute (@membro)`", false)
@@ -298,7 +299,7 @@ client.on('message', async (message) =>{
               break;
 
             case "mute":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("mute command")
               .setColor('#ff00ff')
               .addField("Usage", "`/mute (@membro) (tempo)`", false)
@@ -310,7 +311,7 @@ client.on('message', async (message) =>{
               break;
 
             case "ping":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("Ping command")
               .setColor('#ff00ff')
               .addField("Usage", "`/ping`", false)
@@ -320,7 +321,7 @@ client.on('message', async (message) =>{
               break;
 
             case "avatar":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("avatar command")
               .setColor('#ff00ff')
               .addField("Usage", "`/avatar [@membro]`", false)
@@ -330,7 +331,7 @@ client.on('message', async (message) =>{
              break;
 
             case "servericon":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("servericon command")
               .setColor('#ff00ff')
               .addField("Usage", "`/servericon`", false)
@@ -340,7 +341,7 @@ client.on('message', async (message) =>{
               break;
 
             case "sendasme":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("sendasme command")
               .setColor('#ff00ff')
               .addField("Usage", "``", false)
@@ -350,7 +351,7 @@ client.on('message', async (message) =>{
               break;
 
             case "sendas":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("sendas command")
               .setColor('#ff00ff')
               .addField("Usage", "``", false)
@@ -360,7 +361,7 @@ client.on('message', async (message) =>{
               break;
 
             case "send":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("send command")
               .setColor('#ff00ff')
               .addField("Usage", "``", false)
@@ -370,7 +371,7 @@ client.on('message', async (message) =>{
               break;
 
             case "join":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("join command")
               .setColor('#ff00ff')
               .addField("Usage", "`/join`", false)
@@ -381,7 +382,7 @@ client.on('message', async (message) =>{
               break;
 
             case "restart":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("restart command")
               .setColor('#ff00ff')
               .addField("Usage", "`/restart`", false)
@@ -392,7 +393,7 @@ client.on('message', async (message) =>{
              break;
 
             case "emergency":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("emergency command")
               .setColor('#ff00ff')
               .addField("Usage", "`/emergency`", false)
@@ -402,7 +403,7 @@ client.on('message', async (message) =>{
              break;
 
             case "override":
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("override command")
               .setColor('#ff00ff')
               .addField("Usage", "`/override (...)`", false)
@@ -412,7 +413,7 @@ client.on('message', async (message) =>{
              break;
 
             default:
-              let helpEmbed = new Discord.RichEmbed()
+              helpEmbed = new Discord.RichEmbed()
               .setTitle("Elenco comandi")
               .setColor('#ff00ff')
               .setDescription("Lista completa(circa) dei comandi")
