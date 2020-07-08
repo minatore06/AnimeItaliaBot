@@ -418,7 +418,7 @@ client.on('message', async (message) =>{
               .setColor('#ff00ff')
               .setDescription("Lista completa(circa) dei comandi")
               .addField("Rank", "`level`", false)
-              .addField("economy", "`money` `give-money` `add-money` `remove-money",false)
+              .addField("economy", "`money` `give-money` `add-money` `remove-money`",false)
               .addField("Moderation", "`vmute` `vunmute` `mute`", false)
               .addField("Other", "`ping` `avatar` `servericon` `sendasme` `sendas` `send` `join` `restart` `emergency` `override`", false)
               .setFooter("Prossimi aggiornamenti incentrati sullo shop system")
