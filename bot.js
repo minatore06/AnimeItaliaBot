@@ -179,6 +179,7 @@ client.on('message', async (message) =>{
   if(!message.channel.guild)return
 
   if(message.content.startsWith(prefix)){
+    //400 errors //201 permesso insufficiente
     if(message.member.id == message.guild.ownerID) permissionLevel = 5; //lv 5 = founder
     else if(message.member.roles.some(r=>"681625994700128286".includes(r.id))) permissionLevel = 4; //lv 4 = admin dea
     else if(message.member.roles.some(r=>"681825632891699227".includes(r.id))) permissionLevel = 3; //lv 3 = mod bho
@@ -217,13 +218,213 @@ client.on('message', async (message) =>{
 
           break;
         case prefix+'help':
+          switch(argresult)
+          {
+            case "level":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("level command")
+              .setColor('#ff00ff')
+              .addField("Usage", "`/level [@membro]`", false)
+              .addField("Descrizione", "Visualizza il proprio livello o del membro taggato",false)
+              
+              message.channel.send(helpEmbed)
+              break;
 
-          let helpEmbed = new Discord.RichEmbed()
-            .setTitle("Elenco comandi")
-            .setColor('#ff00ff')
-            .setDescription(prefix+'ping: permette di vedere il ping del bot\n'+prefix+'d (n>1): tira un dado con n facce\n'+prefix+"level [@utente]: permette di vedere il proprio livello o dell'utente taggato\n"+prefix+"money [@utente]: permette di vedere i propri soldi o dell'utente taggato\n"+prefix+"give-money (@utente) (n): permette di dare n soldi dal proprio conto all'utente taggato\n"+prefix+"add-money (@utente) (n): permette di dare n soldi all'utente (solo per admin)\n"+prefix+"remove-money (@utente) (n): permette di rimuovere n soldi all'utente (solo per admin)")
-            .setFooter("Prossimi aggiornamenti incentrati sullo shop system")
-          message.channel.send(helpEmbed)
+            case "money":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("money command")
+              .setColor('#ff00ff')
+              .addField("Usage", "`/money [@membro]`", false)
+              .addField("Descrizione", "Visualizza il proprio quantitativo di soldi o del membro taggato",false)
+              
+              message.channel.send(helpEmbed)
+              break;
+
+            case "give-money":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("give-money command")
+              .setColor('#ff00ff')
+              .addField("Usage", "`/give-money (@membro) (n)`", false)
+              .addField("Descrizione", "Invia n soldi dal proprio conto a quello del membro taggato ",false)
+              .addField("<n>", "Quantitativo di soldi da inviare")
+              
+              message.channel.send(helpEmbed)
+              break;
+
+            case "add-money":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("add-money command")
+              .setColor('#ff00ff')
+              .addField("Usage", "`/add-money (@membro) (n)`", false)
+              .addField("Descrizione", "Givva n soldi al membro taggato",false)
+              .addField("<n>", "Quantitativo di soldi da givvare")
+              .addField("Permission", "PL necessario 4: admin e superiori")
+              
+              message.channel.send(helpEmbed)
+              break;
+
+            case "remove-money":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("remove-money command")
+              .setColor('#ff00ff')
+              .addField("Usage", "`/remove-money (@membro) (n)`", false)
+              .addField("Descrizione", "Rimuove n soldi al membro taggato",false)
+              .addField("<n>", "Quantitativo di soldi da rimuovere")
+              .addField("Permission", "PL necessario 4: admin e superiori")
+              
+              message.channel.send(helpEmbed)
+              break;
+
+            case "vmute":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("vmute command")
+              .setColor('#ff00ff')
+              .addField("Usage", "`/vmute (@membro)`", false)
+              .addField("Descrizione", "Silenzia microfono e cuffie al membro taggato",false)
+              .addField("Permission", "PL necessario 2: staffer")
+              
+              message.channel.send(helpEmbed)
+              break;
+
+            case "vunmute":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("vunmute command")
+              .setColor('#ff00ff')
+              .addField("Usage", "`/vunmute (@membro)`", false)
+              .addField("Descrizione", "Smuta vocalmente il membro taggato",false)
+              .addField("Permission", "PL necessario 2: staffer")
+              
+              message.channel.send(helpEmbed)
+              break;
+
+            case "mute":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("mute command")
+              .setColor('#ff00ff')
+              .addField("Usage", "`/mute (@membro) (tempo)`", false)
+              .addField("Descrizione", "Muta temporaneamente il membro taggato",false)
+              .addField("<tempo>", "Durata del mute. Es 4h, 2d")
+              .addField("Permission", "PL necessario 2: staffer")
+              
+              message.channel.send(helpEmbed)
+              break;
+
+            case "ping":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("Ping command")
+              .setColor('#ff00ff')
+              .addField("Usage", "`/ping`", false)
+              .addField("Descrizione", "pong",false)
+
+              message.channel.send(helpEmbed)
+              break;
+
+            case "avatar":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("avatar command")
+              .setColor('#ff00ff')
+              .addField("Usage", "`/avatar [@membro]`", false)
+              .addField("Descrizione", "Invia il proprio avatar o del membro taggato",false)
+              
+              message.channel.send(helpEmbed)
+             break;
+
+            case "servericon":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("servericon command")
+              .setColor('#ff00ff')
+              .addField("Usage", "`/servericon`", false)
+              .addField("Descrizione", "Non servono spiegazioni",false)
+              
+              message.channel.send(helpEmbed)
+              break;
+
+            case "sendasme":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("sendasme command")
+              .setColor('#ff00ff')
+              .addField("Usage", "``", false)
+              .addField("Descrizione", "",false)
+              
+              message.channel.send(helpEmbed)
+              break;
+
+            case "sendas":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("sendas command")
+              .setColor('#ff00ff')
+              .addField("Usage", "``", false)
+              .addField("Descrizione", "",false)
+              
+              message.channel.send(helpEmbed)
+              break;
+
+            case "send":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("send command")
+              .setColor('#ff00ff')
+              .addField("Usage", "``", false)
+              .addField("Descrizione", "",false)
+              
+              message.channel.send(helpEmbed)
+              break;
+
+            case "join":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("join command")
+              .setColor('#ff00ff')
+              .addField("Usage", "`/join`", false)
+              .addField("Descrizione", "Fa entrare il bot nella stanza vocale in cui si è connessi",false)
+              .addField("Permission", "PL bot owner")
+              
+              message.channel.send(helpEmbed)
+              break;
+
+            case "restart":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("restart command")
+              .setColor('#ff00ff')
+              .addField("Usage", "`/restart`", false)
+              .addField("Descrizione", "Restarta il bot",false)
+              .addField("Permission", "PL bot owner")
+
+              message.channel.send(helpEmbed)
+             break;
+
+            case "emergency":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("emergency command")
+              .setColor('#ff00ff')
+              .addField("Usage", "`/emergency`", false)
+              .addField("Descrizione", "IntErNAl eRrOR: No dEscRiPtioN pROVideD",false)
+              
+              message.channel.send(helpEmbed)
+             break;
+
+            case "override":
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("override command")
+              .setColor('#ff00ff')
+              .addField("Usage", "`/override (...)`", false)
+              .addField("Descrizione", "Error 401: accesso negato",false)
+              
+              message.channel.send(helpEmbed)
+             break;
+
+            default:
+              let helpEmbed = new Discord.RichEmbed()
+              .setTitle("Elenco comandi")
+              .setColor('#ff00ff')
+              .setDescription("Lista completa(circa) dei comandi")
+              .addField("Rank", "`level`", false)
+              .addField("economy", "`money` `give-money` `add-money` `remove-money",false)
+              .addField("Moderation", "`vmute` `vunmute` `mute`", false)
+              .addField("Other", "`ping` `avatar` `servericon` `sendasme` `sendas` `send` `join` `restart` `emergency` `override`", false)
+              .setFooter("Prossimi aggiornamenti incentrati sullo shop system")
+              message.channel.send(helpEmbed)
+              break;
+          }
+
 
           break;
 
@@ -326,12 +527,16 @@ client.on('message', async (message) =>{
           }
           break;
           
+        case prefix+'serverIcon':
+          message.channel.send(message.guild.iconURL);
+          break;
+
         case prefix+'d':
           if(n==""||n==" "||n<2)return message.reply("Nessun numero inserito o numero non valido").then(msg=>eliminazioneMess(message, msg));
           message.channel.send(Math.floor(Math.random()*(n))+1);
           break;
 
-        case prefix+'vmuta'://comando per mutare un utente in vocale
+        case prefix+'vmute'://comando per mutare un utente in vocale
 
           if(permissionLevel > 1)//l'utente deve essere uno staffer
           {
@@ -371,7 +576,7 @@ client.on('message', async (message) =>{
 
           break;
 
-        case prefix+'vsmuta': 
+        case prefix+'vunmute': 
 
           if(permissionLevel > 1)
           {
@@ -409,7 +614,7 @@ client.on('message', async (message) =>{
 
           break;
 
-        case prefix+'muta':
+        case prefix+'mute':
 
           if(permissionLevel > 1)
           {
