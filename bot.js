@@ -533,6 +533,7 @@ client.on('message', async (message) =>{
           break;
 
         case prefix+'d':
+          let n = argresult;
           if(n==""||n==" "||n<2)return message.reply("Nessun numero inserito o numero non valido").then(msg=>eliminazioneMess(message, msg));
           message.channel.send(Math.floor(Math.random()*(n))+1);
           break;
@@ -896,6 +897,38 @@ client.on('message', async (message) =>{
             fs.writeFile("./xp.json", JSON.stringify(xp), (err) => {
               if(err) message.channel.send(err)
             });
+            break;
+
+          case prefix+'spam':
+            if((permissionLevel<5&&message.mentions.users.first().id!='224187407921053696')||permissionLevel<2){message.reply("Error 401: Access denied"); return;}
+            if(!message.mentions.users.first()){message.reply("Devi taggare qualcuno");return;}
+            let numMess=messageAr[2];
+            if(!numMess){message.reply("Numero messaggi non specificato, settatto a 10 di default");numMess=10;}
+            let messCount;
+            message.channel.send("Messaggi rimanenti: "+numMess)
+              .then(mess=>messCount=mess)
+            let spamInterval = setInterval(function(){
+              numMess--;
+              message.mentions.users.first().send("Spam")
+              .then(message =>{
+                message.delete(1000)
+                messCount.edit("Messaggi rimanenti: "+numMess)
+              })
+              .catch(err =>{
+                message.channel.send("Errore: "+err);
+                clearInterval(spamInterval);
+                return;
+              }
+                );
+              if(numMess==0){
+                clearInterval(spamInterval);
+                messCount.edit("Spam completato!!!")
+                return;}
+            }, 500)
+            break;
+
+            case prefix+'rick-astley':
+              message.channel.send("https://www.youtube.com/watch?v=TzXXHVhGXTQ");
             break;
       }
   
