@@ -415,7 +415,7 @@ client.on('message', async (message) =>{
             default:
               helpEmbed = new Discord.RichEmbed()
               .setTitle("Elenco comandi")
-              .setURL("minatore.gitbook.io")
+              .setURL("https://minatore.gitbook.io")
               .setColor('#ff00ff')
               .setDescription("Lista completa(circa) dei comandi")
               .addField("Rank", "`level`", false)
@@ -1014,6 +1014,7 @@ client.on('message', async (message) =>{
 client.on('error', (errore) => {
   console.log(errore)
   if(errore.discordAPIError) return client.user.lastMessage.channel.send(errore.discordAPIRError.method)
+  client.users.get(io).send("Errore non catchato\n"+errore)
 })
 
 client.on('messageReactionAdd', async (reaction, utente) => {
