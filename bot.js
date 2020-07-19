@@ -415,6 +415,7 @@ client.on('message', async (message) =>{
             default:
               helpEmbed = new Discord.RichEmbed()
               .setTitle("Elenco comandi")
+              .setURL("minatore.gitbook.io")
               .setColor('#ff00ff')
               .setDescription("Lista completa(circa) dei comandi")
               .addField("Rank", "`level`", false)
@@ -430,7 +431,7 @@ client.on('message', async (message) =>{
           break;
 
         case prefix+'sendasme':
-          if(message.author.id!=io)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
+          //if(message.author.id!=io)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
           argresult = messageAr.slice(2).join(' ')
           if(/*!client.guilds.get(messageAr[1])||*/!client.channels.get(messageAr[1])) return message.reply("manca roba o stanza non trovata").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
 
@@ -484,7 +485,7 @@ client.on('message', async (message) =>{
           break;
 
         case prefix+'send':
-          if(message.author.id!=io)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
+          //if(message.author.id!=io)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
           argresult = messageAr.slice(2).join(' ')
           if(/*!client.guilds.get(messageAr[1])||*/!client.channels.get(messageAr[1])) return message.reply("manca roba o stanza non trovata").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
           client.channels.get(messageAr[1]).send(argresult).catch(error=>console.log(error))
