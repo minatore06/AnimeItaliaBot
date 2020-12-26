@@ -1,0 +1,20 @@
+{
+  "parser"  : "babel-eslint",
+  "extends" : [
+    "standard",
+    "eslint:recommended"
+  ],
+  "env"     : {
+    "browser" : true,
+    "mocha": true
+  },
+  "rules": {
+    "no-multi-spaces": [2, { exceptions: {
+      "ImportDeclaration": true,
+      "VariableDeclarator": true
+    } }],
+    "key-spacing": [2, {"mode": "minumum"}],
+    "semi" : [2, "always"],
+    "space-before-function-paren": [2, {"anonymous": "always", "named": "never"}]
+  }
+}
