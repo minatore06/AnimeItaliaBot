@@ -1,11 +1,13 @@
 // server.js
 // where your node app starts
-
 // init project
 const Discord = require('discord.js');
 const ms = require('ms');
 const fs = require('fs');
 const opus = require('opusscript');
+const cheerio = require('cheerio');
+const request = require('request');
+//const speech = require('web-speech');
 const { Client, Attachment, RichEmbed } = require('discord.js');
 const client = new Discord.Client();
 
@@ -14,6 +16,7 @@ var xp = require("./xp.json");
 var eco = require("./eco.json");
 var ticket = require("./ticket.json");
 var nextLv = require("./nextLv.json");
+//const { request } = require('http');
 
 const bOwner = config.ownerID;
 const prefix = config.prefix;
@@ -27,13 +30,13 @@ var permissionLevel = 0;
 var tempoMute = [[]];
 var tempoOnMin = 1000;
 var staff = [["316988662799925249", 0, 0], ["306101030704119808", 0, 0],["457523600530866187", 0, 0], ["302479840563691521", 0, 0], ["267303785880223744", 0, 0], ["207785335990648832", 0, 0], ["397191718577111050", 0, 0], ["308263263739838464", 0, 0], ["202787285266202624", 0, 0], ["457125304058773506", 0, 0], ["541679053904805900", 0, 0], ["327870532735205387", 0, 0]];
-var gu = "681624606976901211" //guild id
+var gu = "782908013258211339" //guild id
 var currency = '€';
 var xpTemp = 0;
 var entrate1 = 0;
 var entrate2 = 0;
 var entrate3 = 0;
-var logChan = "709356758916923443";
+var logChan = "783976312955076629";
 const namek = "316988662799925249";
 const io = "143318398548443136";
 var ticketMessage = '708369096571617472';
@@ -83,6 +86,38 @@ function sayError(message){
           dispatcher.on("end", end => {voiceChannel.leave();});
       }).catch(err => console.log(err));
   }
+}
+
+function sendImage(message, topic){
+  var options = {
+    url: "http://results.dogpile.com/serp?qc=images&q="+topic,
+    method: "GET",
+    headers: {
+      "Accept": "text/html",
+      "User-Agent": "Chrome"
+    }
+  };
+
+  request(options, function(error, response, responseBody){
+    if(error){
+      message.channel.reply("Errore imprevisto").then(msg=>eliminazioneMess(message,msg));
+      return;
+    }
+
+    $ = cheerio.load(responseBody)
+
+    var links = $(".image a.link");
+    var urls = new Array(links.length).fill(0).map((v, i) => links.eq(i).attr("href"));
+
+    console.log(urls);
+    
+    if(!urls.length){
+      message.channel.reply("Errore imprevisto").then(msg=>eliminazioneMess(message,msg));
+      return;
+    }
+
+    message.channel.send(urls[Math.floor(Math.random()*urls.length)]);
+  })
 }
 
 function rejectTicket(msg, utente, ch){
@@ -140,6 +175,24 @@ async function deleteTicket(msg, error){
 
 client.on('ready', () => {
   console.log('Wow il bot è online')
+
+
+  client.api.applications(client.user.id).guilds('782908013258211339').commands.post({data:{
+    name: 'ping',
+    description: 'pong!'
+  }})
+  
+  client.ws.on('INTERACTION_CREATE', async interaction => {
+    // do stuff and respond here
+    client.api.interactions(interaction.id, interaction.token).callback.post({data: {
+      type: 4,
+      data: {
+        content: 'hello world!'
+        }
+      }
+    })
+  })
+  /*
   client.channels.get("708368858439876678").fetchMessage(ticketMessage);
   
   setInterval(() => {
@@ -164,7 +217,7 @@ client.on('ready', () => {
           client.channels.get(ch1).setName("👮‍♂️ staff_online_" + staffOnline)
           client.channels.get(ch2).setName("📢Connessi in vocal: " + utentiVocal)
           client.channels.get(ch3).setName("✔ Online: " + online)
-    }, 60000); 
+    }, 60000); */
 })
 
 client.on('message', async (message) =>{
@@ -496,6 +549,34 @@ client.on('message', async (message) =>{
           if(message.author.id!=io)return (await message.reply("Tu non conosci questo comando")).then(msg=>eliminazioneMess(message,msg))
           message.member.voiceChannel.join()
           .catch(err => console.log(err));
+          //let audio = connection.receiver.createStream(message.user, {mode: 'pcm'});
+          
+          var grammar = '#JSGF V1.0; grammar parole; public <parola> = ciao | prova | test ;'
+          let recognition = new SpeechRecognition()
+          let speechRecognitionList = new SpeechGrammarList();
+          speechRecognitionList.addFromString(grammar, 1);
+          recognition.grammars = speechRecognitionList;
+          recognition.lang = "it-IT"
+          recognition.interimResults = false;
+          recognition.maxAlternatives = 1;
+
+          recognition.start();
+/*
+          recognition.onresult = function(event) {
+            var comando = event.results[0][0].transcript
+            console.log("Ecco cosa ho capito "+comando)
+            message.channel.send("Questo è quello che ho capito: "+comando)
+          }
+*/
+          recognition.onspeechend = function() {
+            var result = recognition.stop();
+            var comando = result.results[0][0].transcript
+            console.log('Speech recognition has stopped.');
+            console.log("Ecco cosa ho capito "+comando)
+            message.channel.send("Questo è quello che ho capito: "+comando)
+            message.guild.me.voice.channel.leave()
+          }
+
           break;
 
         case prefix+'avatar':
@@ -518,6 +599,17 @@ client.on('message', async (message) =>{
               collected.first().delete();
               message.channel.send("Operazione confermata!\nProcedura di disconnessione di emergenza attivata!\nElPsyCongroo!\nTHE END!")
               client.destroy();
+            })
+            .catch(err => message.channel.send("Tempo scaduto, operazione annullata"))
+          }else if(argresult=='admin exec ordine #z05'){
+            let filter = m => m.author.id==message.author.id;
+            await message.channel.send("Inserire password")
+            message.channel.awaitMessages(filter, {max:1, time:30000, errors:['time']})
+            .then(collected => {
+              if(collected.first().content!="I'll be back! -TK")return message.reply("Password errata, ordine annullato")
+              collected.first().delete();
+              message.channel.send("Operazione confermata!\nProcedura di uscita di emergenza attivata!\nElPsyCongroo!\nSayonara!")
+              message.guild.leave();
             })
             .catch(err => message.channel.send("Tempo scaduto, operazione annullata"))
           }
@@ -931,6 +1023,10 @@ client.on('message', async (message) =>{
             case prefix+'rick-astley':
               message.channel.send("https://www.youtube.com/watch?v=TzXXHVhGXTQ");
             break;
+
+            case prefix+'catgirl':
+              sendImage(message, "catgirl anime");
+              break;
       }
   
   
@@ -1243,6 +1339,22 @@ client.on('messageReactionAdd', async (reaction, utente) => {
         client.channels.get('594960958342823946').send("L'utente <@" + membro.id + "> non si è verificato, un membro dello staff deve verificarlo manualmente col comando /verify (@utente)");
       })
 })*/
+client.on('guildCreate', guild => {
+  let SendChannel = guild.systemChannel
+  if(!SendChannel) SendChannel = guild.channels.find("name", "general") || guild.channels.find("name", "chat") || guild.channels.find("name", "generale") || guild.channels.find("name", "lobby");
+  if(!SendChannel){
+    guild.channels.cache.forEach((channel) => {
+      if(channel.type == "text" && SendChannel == "") {
+        if(channel.permissionsFor(guild.me).has("SEND_MESSAGES")) {
+          SendChannel = channel;
+        }
+      }
+    })
+  }
+
+  if(SendChannel) SendChannel.send('Sono un bot ancora in beta, il mio prefisso è `/`\n scrivi `/help` per ottenere i miei comandi\nil mio creatore è <@143318398548443136> `Mina#3690`, contattalo se incontri un bug o vuoi suggerire una feature');
+
+})
 
 
 client.on('voiceStateUpdate', (oldMembro, newMembro) => {
