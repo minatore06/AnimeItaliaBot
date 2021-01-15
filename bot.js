@@ -21,6 +21,7 @@ var nextLv = require("./nextLv.json");
 const bOwner = config.ownerID;
 const prefix = config.prefix;
 const token = config.token;
+const gu = config.guild;
 const talkedRecently = new Set();
 const talkedNoMoney = new Set();
 const ticketRecently = new Set();
@@ -30,7 +31,6 @@ var permissionLevel = 0;
 var tempoMute = [[]];
 var tempoOnMin = 1000;
 var staff = [["316988662799925249", 0, 0], ["306101030704119808", 0, 0],["457523600530866187", 0, 0], ["302479840563691521", 0, 0], ["267303785880223744", 0, 0], ["207785335990648832", 0, 0], ["397191718577111050", 0, 0], ["308263263739838464", 0, 0], ["202787285266202624", 0, 0], ["457125304058773506", 0, 0], ["541679053904805900", 0, 0], ["327870532735205387", 0, 0]];
-var gu = "782908013258211339" //guild id
 var currency = '€';
 var xpTemp = 0;
 var entrate1 = 0;
@@ -70,7 +70,7 @@ function levelUp(message, utente){
     .setColor('#14c5a2')
     .addField('Level', xp[utente.id].level, true)
     .addField('XP', xp[utente.id].xp, true)
-    .setFooter(Math.floor(xpNec)-Math.floor(xp[utente.id].xp)+" XP per il prossimo livello", utente.displayAvatarURL);
+    .setFooter(Math.floor(xpNec)-Math.floor(xp[utente.id].xp)+" XP per il prossimo livello", utente.displayAvatarURL());
   
   message.channel.send(lvlEmbed).then(msg => {
     msg.delete(20000)
@@ -79,11 +79,11 @@ function levelUp(message, utente){
 }
 
 function sayError(message){
-  let voiceChannel = message.member.voiceChannel;
+  let voiceChannel = message.member.voice.channel;
   if(voiceChannel){
       voiceChannel.join().then(connection =>{
-          const dispatcher = connection.playFile("./audio/error.mp3");
-          dispatcher.on("end", end => {voiceChannel.leave();});
+          const dispatcher = connection.play("./audio/error.mp3");
+          dispatcher.on("finish", end => {voiceChannel.leave();});
       }).catch(err => console.log(err));
   }
 }
@@ -127,19 +127,22 @@ function rejectTicket(msg, utente, ch){
     if(err) message.channel.send(err)
   });
 
-  ch.overwritePermissions(utente.id,{
-      VIEW_CHANNEL:false
-  })
+  ch.overwritePermissions([
+    {
+      id: utente.id,
+      deny: ['VIEW_CHANNEL']
+    }
+  ])
 
-  client.channels.get(logChan).send(new Discord.RichEmbed()
-  .setAuthor("Ticket "+ch.name, client.user.displayAvatarURL)
+  client.channels.fetch(logChan).send(new Discord.RichEmbed()
+  .setAuthor("Ticket "+ch.name, client.user.displayAvatarURL({dynamic:true}))
   .setColor('#D49F07')
-  .setDescription("Ticket chiuso da "+msg.reactions.get('❎').users.first().tag)
-  .setFooter("Mod id: "+msg.reactions.get('❎').users.first().id, msg.reactions.get('❎').users.first().displayAvatarURL))
+  .setDescription("Ticket chiuso da "+msg.reactions.cache.get('❎').users.first().tag)
+  .setFooter("Mod id: "+msg.reactions.cache.get('❎').users.first().id, msg.reactions.cache.get('❎').users.first().displayAvatarURL({dynamic_true})))
 
   ch.send(new Discord.RichEmbed()
     .setTitle("Ticket chiuso")
-    .setFooter("Ticket chiuso da "+msg.reactions.get('❎').users.first().username,msg.reactions.get('❎').users.first().displayAvatarURL))
+    .setFooter("Ticket chiuso da "+msg.reactions.cache.get('❎').users.first().username,msg.reactions.cache.get('❎').users.first().displayAvatarURL({dynamic:true})))
   .then(async msg=>{
     await msg.react('🗑️')
     deleteTicket(msg, false)
@@ -152,24 +155,24 @@ async function deleteTicket(msg, error){
   }
   await msg.awaitReactions(filtro, {max:1, time: 259200000, errors:['time']})
   .then(async ()=>{
-    if(!error)await msg.reactions.get('🗑️').remove()
-    await client.channels.get(logChan).send(new Discord.RichEmbed()
-    .setAuthor("Ticket #"+msg.channel.name, client.user.displayAvatarURL)
+    if(!error)await msg.reactions.cache.get('🗑️').remove()
+    await client.channels.fetch(logChan).send(new Discord.RichEmbed()
+    .setAuthor("Ticket #"+msg.channel.name, client.user.displayAvatarURL({dynamic:true}))
     .setColor('#000000')
-    .setDescription("Ticket eliminato da "+msg.reactions.get('🗑️').users.first().tag)
-    .setFooter("Mod id: "+msg.reactions.get('🗑️').users.first().id,msg.reactions.get('🗑️').users.first().displayAvatarURL))
+    .setDescription("Ticket eliminato da "+msg.reactions.cache.get('🗑️').users.first().tag)
+    .setFooter("Mod id: "+msg.reactions.cache.get('🗑️').users.first().id,msg.reactions.cache.get('🗑️').users.first().displayAvatarURL({dynamic:true})))
 
-    msg.channel.delete();
+    if(msg.channel.client.user.id == client.user.id)msg.channel.delete();
   })
   .catch(async (err)=> {
     console.log(err)
-    await client.channels.get(logChan).send(new Discord.RichEmbed()
-    .setAuthor("Ticket #"+msg.channel.name, client.user.displayAvatarURL)
+    await client.channels.fetch(logChan).send(new Discord.RichEmbed()
+    .setAuthor("Ticket #"+msg.channel.name, client.user.displayAvatarURL({dynamic:true}))
     .setColor('#000000')
-    .setDescription("Ticket eliminato da "+msg.reactions.get('🗑️').users.first().tag)
-    .setFooter("ùmod id: "+msg.reactions.get('🗑️').users.first().id,msg.reactions.get('🗑️').users.first().displayAvatarURL))
+    .setDescription("Ticket eliminato da "+msg.reactions.cache.get('🗑️').users.first().tag)
+    .setFooter("Mod id: "+msg.reactions.cache.get('🗑️').users.first().id,msg.reactions.cache.get('🗑️').users.first().displayAvatarURL({dynamic:true})))
 
-    msg.channel.delete();
+    if(msg.channel.client.user.id == client.user.id)msg.channel.delete();
   })
 }
 
@@ -177,21 +180,107 @@ client.on('ready', () => {
   console.log('Wow il bot è online')
 
 
-  client.api.applications(client.user.id).guilds('782908013258211339').commands.post({data:{
-    name: 'ping',
-    description: 'pong!'
-  }})
+  /*client.api.applications(client.user.id).commands.post({data:{
+    name: 'info',
+    description: 'Mostra le informazioni del bot'
+  }})*/
   
-  client.ws.on('INTERACTION_CREATE', async interaction => {
-    // do stuff and respond here
-    client.api.interactions(interaction.id, interaction.token).callback.post({data: {
-      type: 4,
-      data: {
-        content: 'hello world!'
-        }
+  try{
+    client.ws.on('INTERACTION_CREATE', async interaction => {
+      // do stuff and respond here
+      console.log(interaction)
+      console.log(interaction.data.options)
+      var dati = {
+          type: 2
       }
+
+      switch(interaction.data.name){
+        case "help":
+          dati = {
+            type: 4,
+            data: {
+              embeds: [{
+                color: 0x15EE0E,
+                title: "Elenco comandi",
+                author: {
+                  name: client.user.username,
+                  icon_url: client.user.avatarURL()
+                },
+                description: "Lista dei comandi del bot",
+                fields: [
+                  {
+                    name: "Other",
+                    value: "`avatar` `serverIcon` `catgirl` `image` `d` `conv` `moduli` `send` `sendas` `sendas` `override` `join` `get rick rolled`"
+                  },
+                  {
+                    name: "Level",
+                    value: "`level` `allLevel`"
+                  },
+                  {
+                    name: "Economy",
+                    value: "`money` `give-money` `add-money` `remove-money`"
+                  },
+                  {
+                    name: "Mod",
+                    value: "`vmute` `vunmute` `mute`"
+                  }
+                ],
+                thumbnail: {
+                  url: (await client.guilds.cache.get(interaction.guild_id)).iconURL()
+                },
+                timestamp: new Date(),
+                footer: {
+                  text: (await client.users.fetch(bOwner)).tag,
+                  icon_url: (await client.users.fetch(bOwner)).avatarURL({dynamic: true})
+                }
+              }]
+            }
+          }
+          break;
+
+          case "changelog":
+            let changelog = require("./update.json");
+            /*var embed = new Discord.MessageEmbed()
+            .setAuthor("Changelog#"+changelog.num, client.user.avatarURL())
+            .setTitle("Version: "+changelog.version)
+            .setColor("#EB8C21")
+            .setDescription(changelog.descizione)
+            .setThumbnail(message.guild.iconURL())
+            .setTimestamp()
+            .setFooter(changelog.todo);
+          
+            if(client.users.cache.get(bOwner)){
+              embed.setFooter(changelog.todo, client.users.cache.get(bOwner).avatarURL());
+            }*/
+            dati = {
+              type: 4,
+              data: {
+                embeds: [{
+                  color: 0xEB8C21,
+                  title: "Version: "+changelog.version,
+                  author: {
+                    name: "Changelog#"+changelog.num,
+                    icon_url: client.user.avatarURL()
+                  },
+                  description: changelog.descizione,
+                  thumbnail: {
+                    url: (await client.guilds.fetch(interaction.guild_id)).iconURL()
+                  },
+                  timestamp: new Date(),
+                  footer: {
+                    text: "TODO: "+changelog.todo,
+                    icon_url: (await client.users.fetch(bOwner)).avatarURL({dynamic: true})
+                  }
+                }]
+              }
+            }
+            break;
+      }
+      client.api.interactions(interaction.id, interaction.token).callback.post({data: dati})
     })
-  })
+  }catch(err){
+    console.log(err);
+  }
   /*
   client.channels.get("708368858439876678").fetchMessage(ticketMessage);
   
@@ -233,31 +322,37 @@ client.on('message', async (message) =>{
 
   if(message.content.startsWith(prefix)){
     //400 errors //201 permesso insufficiente
-    if(message.member.id == message.guild.ownerID) permissionLevel = 5; //lv 5 = founder
-    else if(message.member.roles.some(r=>"681625994700128286".includes(r.id))) permissionLevel = 4; //lv 4 = admin dea
-    else if(message.member.roles.some(r=>"681825632891699227".includes(r.id))) permissionLevel = 3; //lv 3 = mod bho
-    else if(message.member.roles.some(r=>"682309861924405260".includes(r.id))) permissionLevel = 2; //lv 2 = helper idk
-    else if(message.member.roles.some(r=>"💠VIP💠".includes(r.id))) permissionLevel = 1; //lv 1 = vip
+    if(message.member.id == message.guild.ownerID) permissionLevel = 7; //lv 7 = founder kami
+    else if(message.member.roles.cache.get("536529981174710272")) permissionLevel = 6; //lv 6 = Founder emperor
+    else if(message.member.id == bOwner) permissionLevel = 5 //lv 5 = creator
+    else if(message.member.roles.cache.get("702253080422383666")) permissionLevel = 4; //lv 4 = admin admiral
+    else if(message.member.roles.cache.get("536528397061586974")) permissionLevel = 3; //lv 3 = mod lieutenant
+    else if(message.member.roles.cache.get("702441548633341982")) permissionLevel = 2; //lv 2 = helper sbirro
+    else if(message.member.roles.cache.get("792500822159917077")||message.member.roles.cache.get("797919391609651221")) permissionLevel = 1; //lv 1 = vip Nephren
     else permissionLevel = 0; //lv 0 = everyone
   }
 
   if(!message.author.bot){
     //creazione rank per nuovo utente
-    if(!xp[message.author.id]){
-    if(message.channel.guild.id!=gu)return;
-      xp[message.author.id] = {
-        xp: 0,
-        level: 1
-      };
-      message.member.addRole(message.guild.roles.get(lvRoles[0]));
+    if(config.level){
+      if(!xp[message.author.id]){
+      if(message.channel.guild.id!=gu)return;
+        xp[message.author.id] = {
+          xp: 0,
+          level: 1
+        };
+        message.member.addRole(message.guild.roles.cache.get(lvRoles[0]));
+      }
     }
     //creazione acconto per nuovo utente
-    if(!eco[message.author.id]){
-      if(message.channel.guild.id!=gu)return;
-      eco[message.author.id] = {
-        pocketMoney: 0,
-        bankMoney: 100
-      };
+    if(config.economy){
+      if(!eco[message.author.id]){
+        if(message.channel.guild.id!=gu)return;
+        eco[message.author.id] = {
+          pocketMoney: 0,
+          bankMoney: 100
+        };
+      }
     }
   }
   
@@ -271,34 +366,36 @@ client.on('message', async (message) =>{
 
           break;
         case prefix+'help':
-          var helpEmbed;
+          var helpEmbed = new Discord.RichEmbed()
+            .setColot('#ff00ff')
+            .setAuthor(client.user.username, client.user.avatarURL())
+            .setThumbnail(client.guilds.cache.get(gu).iconURL())
+            .setTimestamp()
+            .setFooter((await client.users.fetch(bOwner)).username, (await client.users.fetch(bOwner)).avatarURL())
           switch(argresult)
           {
             case "level":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("level command")
-              .setColor('#ff00ff')
-              .addField("Usage", "`/level [@membro]`", false)
+              .addField("Usage", "`"+prefix+"level [@membro]`", false)
               .addField("Descrizione", "Visualizza il proprio livello o del membro taggato",false)
               
               message.channel.send(helpEmbed)
               break;
 
             case "money":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("money command")
-              .setColor('#ff00ff')
-              .addField("Usage", "`/money [@membro]`", false)
-              .addField("Descrizione", "Visualizza il proprio quantitativo di soldi o del membro taggato",false)
+              .addField("Usage", "`"+prefix+"money [@membro]`", false)
+              .addField("Descrizione", "Visualizza il proprio conto o del membro taggato",false)
               
               message.channel.send(helpEmbed)
               break;
 
             case "give-money":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("give-money command")
-              .setColor('#ff00ff')
-              .addField("Usage", "`/give-money (@membro) (n)`", false)
+              .addField("Usage", "`"+prefix+"give-money (@membro) (n)`", false)
               .addField("Descrizione", "Invia n soldi dal proprio conto a quello del membro taggato ",false)
               .addField("<n>", "Quantitativo di soldi da inviare")
               
@@ -306,175 +403,216 @@ client.on('message', async (message) =>{
               break;
 
             case "add-money":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("add-money command")
-              .setColor('#ff00ff')
-              .addField("Usage", "`/add-money (@membro) (n)`", false)
+              .addField("Usage", "`"+prefix+"add-money (@membro) (n)`", false)
               .addField("Descrizione", "Givva n soldi al membro taggato",false)
               .addField("<n>", "Quantitativo di soldi da givvare")
-              .addField("Permission", "PL necessario 4: admin e superiori")
+              .addField("Permission", "PL necessario 4: admin(admiral)")
               
               message.channel.send(helpEmbed)
               break;
 
             case "remove-money":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("remove-money command")
-              .setColor('#ff00ff')
-              .addField("Usage", "`/remove-money (@membro) (n)`", false)
+              .addField("Usage", "`"+prefix+"remove-money (@membro) (n)`", false)
               .addField("Descrizione", "Rimuove n soldi al membro taggato",false)
               .addField("<n>", "Quantitativo di soldi da rimuovere")
-              .addField("Permission", "PL necessario 4: admin e superiori")
+              .addField("Permission", "PL necessario 4: admin(admiral)")
               
               message.channel.send(helpEmbed)
               break;
 
             case "vmute":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("vmute command")
-              .setColor('#ff00ff')
-              .addField("Usage", "`/vmute (@membro)`", false)
+              .addField("Usage", "`"+prefix+"vmute (@membro)`", false)
               .addField("Descrizione", "Silenzia microfono e cuffie al membro taggato",false)
-              .addField("Permission", "PL necessario 2: staffer")
+              .addField("Permission", "PL necessario 2: staffer(sbirro)")
               
               message.channel.send(helpEmbed)
               break;
 
             case "vunmute":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("vunmute command")
-              .setColor('#ff00ff')
-              .addField("Usage", "`/vunmute (@membro)`", false)
+              .addField("Usage", "`"+prefix+"vunmute (@membro)`", false)
               .addField("Descrizione", "Smuta vocalmente il membro taggato",false)
-              .addField("Permission", "PL necessario 2: staffer")
+              .addField("Permission", "PL necessario 2: staffer(sbirro)")
               
               message.channel.send(helpEmbed)
               break;
 
             case "mute":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("mute command")
-              .setColor('#ff00ff')
-              .addField("Usage", "`/mute (@membro) (tempo)`", false)
+              .addField("Usage", "`"+prefix+"mute (@membro) (tempo)`", false)
               .addField("Descrizione", "Muta temporaneamente il membro taggato",false)
               .addField("<tempo>", "Durata del mute. Es 4h, 2d")
-              .addField("Permission", "PL necessario 2: staffer")
+              .addField("Permission", "PL necessario 2: staffer(sbirro)")
               
               message.channel.send(helpEmbed)
               break;
 
             case "ping":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("Ping command")
-              .setColor('#ff00ff')
-              .addField("Usage", "`/ping`", false)
+              .addField("Usage", "`"+prefix+"ping`", false)
               .addField("Descrizione", "pong",false)
 
               message.channel.send(helpEmbed)
               break;
 
             case "avatar":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("avatar command")
-              .setColor('#ff00ff')
-              .addField("Usage", "`/avatar [@membro]`", false)
+              .addField("Usage", "`"+prefix+"avatar [@membro]`", false)
               .addField("Descrizione", "Invia il proprio avatar o del membro taggato",false)
               
               message.channel.send(helpEmbed)
              break;
 
-            case "servericon":
-              helpEmbed = new Discord.RichEmbed()
+            case "serverIcon":
+              helpEmbed
               .setTitle("servericon command")
-              .setColor('#ff00ff')
-              .addField("Usage", "`/servericon`", false)
+              .addField("Usage", "`"+prefix+"serverIcon`", false)
               .addField("Descrizione", "Non servono spiegazioni",false)
               
               message.channel.send(helpEmbed)
               break;
 
             case "sendasme":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("sendasme command")
-              .setColor('#ff00ff')
-              .addField("Usage", "``", false)
-              .addField("Descrizione", "",false)
-              
+              .addField("Usage", "`"+prefix+"sendasme (stanza) (msg)`", false)
+              .addField("Descrizione", "Invia un messaggio a nome tuo",false)
+              .addField("<stanza>", "id della stanza da inviare")
+              .addField("<msg>", "messaggio da inviare")
+              .addField("Permission", "PL necessario 1: vip(Nephren)")
+
               message.channel.send(helpEmbed)
               break;
 
             case "sendas":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("sendas command")
-              .setColor('#ff00ff')
-              .addField("Usage", "``", false)
-              .addField("Descrizione", "",false)
+              .addField("Usage", "`"+prefix+"sendas (stanza) (membro) (msg)`", false)
+              .addField("Descrizione", "Invia un messaggio a nome del membro",false)
+              .addField("<stanza>", "id della stanza da inviare")
+              .addField("<membro>", "id del membro da imitare")
+              .addField("<msg>", "messaggio da inviare")
+              .addField("Permission", "PL necessario 5<strict>: creator(master)")
               
               message.channel.send(helpEmbed)
               break;
 
             case "send":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("send command")
-              .setColor('#ff00ff')
-              .addField("Usage", "``", false)
-              .addField("Descrizione", "",false)
+              .addField("Usage", "`"+prefix+"sendasme (stanza) (msg)`", false)
+              .addField("Descrizione", "Invia un messaggio a nome del bot",false)
+              .addField("<stanza>", "id della stanza da inviare")
+              .addField("<msg>", "messaggio da inviare")
+              .addField("Permission", "PL necessario 5<strict>: creator(master)")
               
               message.channel.send(helpEmbed)
               break;
 
             case "join":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("join command")
-              .setColor('#ff00ff')
-              .addField("Usage", "`/join`", false)
+              .addField("Usage", "`"+prefix+"join`", false)
               .addField("Descrizione", "Fa entrare il bot nella stanza vocale in cui si è connessi",false)
-              .addField("Permission", "PL bot owner")
+              .addField("Permission", "PL necessario 5<strict>: creator(master)")
               
               message.channel.send(helpEmbed)
               break;
 
             case "restart":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("restart command")
-              .setColor('#ff00ff')
-              .addField("Usage", "`/restart`", false)
+              .addField("Usage", "`"+prefix+"restart`", false)
               .addField("Descrizione", "Restarta il bot",false)
-              .addField("Permission", "PL bot owner")
+              .addField("Permission", "PL necessario 5<strict>: creator(master)")
 
               message.channel.send(helpEmbed)
              break;
 
             case "emergency":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("emergency command")
-              .setColor('#ff00ff')
-              .addField("Usage", "`/emergency`", false)
+              .addField("Usage", "`"+prefix+"emergency`", false)
               .addField("Descrizione", "IntErNAl eRrOR: No dEscRiPtioN pROVideD",false)
               
               message.channel.send(helpEmbed)
              break;
 
             case "override":
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("override command")
-              .setColor('#ff00ff')
-              .addField("Usage", "`/override (...)`", false)
+              .addField("Usage", "`"+prefix+"override (...)`", false)
               .addField("Descrizione", "Error 401: accesso negato",false)
               
               message.channel.send(helpEmbed)
              break;
 
+            case "catgirl":
+              helpEmbed
+                .setTitle("catgirl command")
+                .addField("Usage", "`"+prefix+"catgirl`", false)
+                .addField("Descrizione", "Invia una catgirl", false)
+
+                message.channel.send(helpEmbed)
+              break;
+
+            case "image":
+              helpEmbed
+                .setTitle("image command")
+                .addField("Usage", "`"+prefix+"image (arg)`", false)
+                .addField("Descrizione", "Invia un'immagine", false)
+                .addField("<arg>", "Parole chiavi per l'immagine")
+                
+              message.channel.send(helpEmbed)
+              break;
+
+            case "d":
+              helpEmbed
+                .setTitle("d command")
+                .addField("Usage", "`"+prefix+"d (n)`", false)
+                .addField("Descrizione", "Tira un dado", false)
+                .addField("<n>", "Il numero di facce del dado")
+                
+              message.channel.send(helpEmbed)
+              break;
+
+            case "conv":
+              helpEmbed
+                .setTitle("conv command")
+                .addField("Usage", "`"+prefix+"conv (n)`", false)
+                .addField("Descrizione", "Converte un numero decimale in binario",false)
+                .addField("<n>", "Il numero da convertire")
+                
+              message.channel.send(helpEmbed)
+              break;
+
+            case "moduli":
+              helpEmbed
+                .setTitle("moduli command")
+                .addField("Usage", "`"+prefix+"moduli`",false)
+                .addField("Descizione", "Mostra lo stato dei moduli del bot", false)
+                
+              message.channel.send(helpEmbed)
+              break;
             default:
-              helpEmbed = new Discord.RichEmbed()
+              helpEmbed
               .setTitle("Elenco comandi")
               .setURL("https://minatore.gitbook.io")
-              .setColor('#ff00ff')
               .setDescription("Lista completa(circa) dei comandi")
               .addField("Rank", "`level`", false)
               .addField("economy", "`money` `give-money` `add-money` `remove-money`",false)
               .addField("Moderation", "`vmute` `vunmute` `mute`", false)
-              .addField("Other", "`ping` `avatar` `servericon` `sendasme` `sendas` `send` `join` `restart` `emergency` `override`", false)
+              .addField("Other", "`ping` `avatar` `serverIcon` `catgirl` `image` `d` `conv` `moduli`  `sendasme` `sendas` `send` `join` `restart` `emergency` `override`", false)
               .setFooter("Prossimi aggiornamenti incentrati sullo shop system")
               message.channel.send(helpEmbed)
               break;
@@ -484,50 +622,54 @@ client.on('message', async (message) =>{
           break;
 
         case prefix+'sendasme':
-          //if(message.author.id!=io)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
+          //if(message.author.id!=bOwner)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
           argresult = messageAr.slice(2).join(' ')
-          if(/*!client.guilds.get(messageAr[1])||*/!client.channels.get(messageAr[1])) return message.reply("manca roba o stanza non trovata").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
+          if(/*!client.guilds.get(messageAr[1])||*/!client.channels.cache.get(messageAr[1])) return message.reply("manca roba o stanza non trovata").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
 
-          client./*guilds.get(messageAr[1]).*/channels.get(messageAr[1]).createWebhook('test', message.author.avatarURL)
-              .then(webhook => {
-                  webhook.send(argresult, {
-                      'username': message.author.username,
-                      'avatarURL': message.author.avatarURL,
-                  })
-                  .catch(error =>{
-                      console.log(error);
-                      sayError(message)
-                      return message.reply("Error").then(msg=>eliminazioneMess(msg))
-                  })
-                  webhook.delete()
+          client./*guilds.get(messageAr[1]).*/channels.cache.get(messageAr[1]).createWebhook('test', message.author.avatarURL())
+            .then(webhook => {
+              webhook.send(argresult, {
+                'username': message.author.username,
+                'avatarURL': message.author.avatarURL({dynamic:true}),
+              })
+              .then(() => {
+                webhook.delete()
               })
               .catch(error =>{
-                  console.log(error);
-                  sayError(message);
-                  return message.reply("Error").then(msg=>eliminazioneMess(msg))
-              })
+                console.log(error);
+                sayError(message)
+                return message.reply("Error").then(msg=>eliminazioneMess(msg))
+            })
+            })
+            .catch(error =>{
+                console.log(error);
+                sayError(message);
+                return message.reply("Error").then(msg=>eliminazioneMess(msg))
+            })
           message.delete()
           break;
 
         case prefix+'sendas':
-          if(message.author.id!=io)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
-          utente = client.users.get(messageAr[2]) || await client.fetchUser(messageAr[2]);
+          if(permissionLevel!=5)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
+          utente = client.users.cache.get(messageAr[2]) || await client.users.fetch(messageAr[2]);
           stanza = messageAr[1];
           argresult = messageAr.slice(3).join(' ')
-          if(!client.channels.get(stanza)) return message.reply("manca roba o stanza non trovata").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
+          if(!client.channels.cache.get(stanza)) return message.reply("manca roba o stanza non trovata").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
           if(!utente)return message.reply("manca roba o utente non trovato").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
-          client.channels.get(messageAr[1]).createWebhook('test', message.author.avatarURL)
+          client.channels.cache.get(messageAr[1]).createWebhook('test', {avatar:message.author.avatarURL()})
           .then(webhook => {
               webhook.send(argresult, {
                   'username': utente.username,
-                  'avatarURL': utente.avatarURL,
+                  'avatarURL': utente.avatarURL({dynamic:true})
+              })
+              .then(() => {
+                webhook.delete()
               })
               .catch(error =>{
                   console.log(error);
                   sayError(message)
                   return message.reply("Error").then(msg=>eliminazioneMess(msg))
               })
-              webhook.delete()
           })
           .catch(error =>{
               console.log(error);
@@ -538,15 +680,15 @@ client.on('message', async (message) =>{
           break;
 
         case prefix+'send':
-          //if(message.author.id!=io)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
+          if(permissionLevel!=5)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
           argresult = messageAr.slice(2).join(' ')
-          if(/*!client.guilds.get(messageAr[1])||*/!client.channels.get(messageAr[1])) return message.reply("manca roba o stanza non trovata").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
-          client.channels.get(messageAr[1]).send(argresult).catch(error=>console.log(error))
+          if(/*!client.guilds.get(messageAr[1])||*/!client.channels.cache.get(messageAr[1])) return message.reply("manca roba o stanza non trovata").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
+          client.channels.cache.get(messageAr[1]).send(argresult).catch(error=>console.log(error))
           message.delete()
           break;
 
         case prefix+'join':
-          if(message.author.id!=io)return (await message.reply("Tu non conosci questo comando")).then(msg=>eliminazioneMess(message,msg))
+          if(permissionLevel!=5)return (await message.reply("Tu non conosci questo comando")).then(msg=>eliminazioneMess(message,msg))
           message.member.voiceChannel.join()
           .catch(err => console.log(err));
           //let audio = connection.receiver.createStream(message.user, {mode: 'pcm'});
@@ -580,17 +722,18 @@ client.on('message', async (message) =>{
           break;
 
         case prefix+'avatar':
-          if(!message.mentions.members.first())return (await message.reply(message.author.avatarURL).then(message.delete()));
-          message.channel.send(message.mentions.members.first().user.avatarURL);
+          if(!message.mentions.members.first())return (await message.reply(message.author.avatarURL({dynamic:true})).then(message.delete()));
+          message.channel.send(message.mentions.members.first().user.avatarURL({dynamic:true}));
           message.delete()
           break;
 
         case prefix+"emergency":
-          if(message.author.id==io) message.reply("override admin exec ordine numero 227").then(msg => eliminazioneMess(message,msg))
+          if(message.author.id==bOwner) message.reply("override admin exec ordine numero 227\nI'll be back! -TK").then(msg => eliminazioneMess(message,msg))
           break;
 
         case prefix+'override':
           if(argresult=='admin exec ordine numero 227'){
+
             let filter = m => m.author.id==message.author.id;
             await message.channel.send("Inserire password")
             message.channel.awaitMessages(filter, {max:1, time:30000, errors:['time']})
@@ -601,7 +744,9 @@ client.on('message', async (message) =>{
               client.destroy();
             })
             .catch(err => message.channel.send("Tempo scaduto, operazione annullata"))
+
           }else if(argresult=='admin exec ordine #z05'){
+
             let filter = m => m.author.id==message.author.id;
             await message.channel.send("Inserire password")
             message.channel.awaitMessages(filter, {max:1, time:30000, errors:['time']})
@@ -612,17 +757,93 @@ client.on('message', async (message) =>{
               message.guild.leave();
             })
             .catch(err => message.channel.send("Tempo scaduto, operazione annullata"))
+
+          }else if(permissionLevel>4){ 
+            if(argresult == "admin exec enable level"){
+              if(!config.level){
+                config.level = true;
+                message.reply("Modulo `level` attivato");
+
+                fs.writeFile('config.json', JSON.stringify(config), (err) => {
+                  if(err)console.log(err);
+                })
+              }else{
+                message.reply("Modula già attivo");
+              }
+
+            }else if(argresult == "admin exec disable level"){
+              if(config.level){
+                config.level = false;
+                message.reply("Modulo `level` disattivato");
+
+                fs.writeFile('config.json', JSON.stringify(config), (err) => {
+                  if(err)console.log(err);
+                })
+              }else{
+                message.reply("Modulo già disattivato");
+              }
+
+            }else if(argresult == "admin exec enable economy"){
+              if(!config.economy){
+                config.economy = true;
+                message.reply("Modulo `economy` attivato");
+
+                fs.writeFile('config.json', JSON.stringify(config), (err) => {
+                  if(err)console.log(err);
+                })
+              }else{
+                message.reply("Modula già attivo");
+              }
+
+            }else if(argresult == "admin exec disable economy"){
+              if(config.economy){
+                config.economy = false;
+                message.reply("Modulo `economy` disattivato");
+
+                fs.writeFile('config.json', JSON.stringify(config), (err) => {
+                  if(err)console.log(err);
+                })
+              }else{
+                message.reply("Modulo già disattivato");
+              }
+            }else if(argresult == "admin exec enable ticket"){
+              if(config.economy){
+                config.economy = false;
+                message.reply("Modulo `ticket` attivato");
+
+                fs.writeFile('config.json', JSON.stringify(config), (err) => {
+                  if(err)console.log(err);
+                })
+              }else{
+                message.reply("Modulo già attivato");
+              }
+            }else if(argresult == "admin exec disable ticket"){
+              if(config.economy){
+                config.economy = false;
+                message.reply("Modulo `ticket` disattivato");
+
+                fs.writeFile('config.json', JSON.stringify(config), (err) => {
+                  if(err)console.log(err);
+                })
+              }else{
+                message.reply("Modulo già disattivato");
+              }
+            }
           }
           break;
 
+        case prefix+"moduli":
+          message.channel.send("Modulo `level` "+config.level+"\nModulo `economy` "+config.economy+"\nModulo `ticket` "+config.ticket)
+          break;
+
         case prefix+'restart':
-          if(message.author.id==io){
+          if(message.author.id==bOwner){
             message.channel.send("Restarting...").then(client.destroy()).then(client.login(token))
           }
           break;
           
         case prefix+'serverIcon':
-          message.channel.send(message.guild.iconURL);
+          message.channel.send(message.guild.iconURL({dynamic: true}));
           break;
 
         case prefix+'d':
@@ -643,14 +864,14 @@ client.on('message', async (message) =>{
               return;
             }
 
-            if(!membro.voiceChannelID)//se l'omino taggato non è in vocale
+            if(!membro.voice.channelID)//se l'omino taggato non è in vocale
             {
                 message.reply("L'utente non è al momento connesso ad un canale vocale").then(msg=>
                 eliminazioneMess(message, msg))
               return;
             }
 
-            if(membro.deaf==true && membro.mute==true)//se l'omino taggato è già mutato
+            if(membro.voice.deaf==true && membro.voice.mute==true)//se l'omino taggato è già mutato
             {
               message.reply("L'utente è già mutato").then(msg=>
                 eliminazioneMess(message, msg))
@@ -685,14 +906,14 @@ client.on('message', async (message) =>{
 
             if(!membro.voiceChannelID)
             {
-              message.reply("This man isn't in a vocale").then(msg=>
+              message.reply("L'utente non è al momento connesso ad un canale vocale").then(msg=>
                 eliminazioneMess(message, msg))
               return;
             }
 
             if(membro.deaf==false && membro.mute==false)
             {
-              message.reply("Utente già smutato").then(msg=>
+              message.reply("Utente è già smutato").then(msg=>
                eliminazioneMess(message, msg))
               return;
             }
@@ -722,22 +943,31 @@ client.on('message', async (message) =>{
             } 
 
             let tempo = argresult
-            if(!tempo)
+            if(!tempo || !ms(tempo))
             {
+              tempo = -1;/*
               message.reply("Devi specificare un tempo").then(msg=>
-                eliminazioneMess(message, msg))
-              return;
+                eliminazioneMess(message, msg))*/
             }
 
             ruolo = 'muted'
             let muteRole = message.member.guild.roles.find(role => role.name === ruolo);
 
+            if(!mutRole)return message.reply("Ruolo muted non trovato").then(msg => eliminationMess(message, msg));
+
             membro.addRole(muteRole)
 
-            setTimeout(function(){
-              membro.removeRole(muteRole)
-            }, ms(tempo))
-
+            if(tempo!=-1){
+              setTimeout(function(){
+                membro.removeRole(muteRole)
+                message.reply(`${membro} è stato smutato con successo`).then(msg => eliminazioneMess(message, msg))
+              }, ms(tempo))
+              message.reply(`${membro} è stato mutato con successo\nDurata: \`\`\``+tempo+`\`\`\``).then(msg=>
+                eliminazioneMess(message, msg))              
+            }else{
+              message.reply(`${membro} è stato mutato con successo\nDurata: \`\`\`indefinita\`\`\``).then(msg=>
+                eliminazioneMess(message, msg))  
+            }
           }else
           {
             message.reply("Non hai il permesso per fare questo comando").then(msg=>
@@ -745,7 +975,7 @@ client.on('message', async (message) =>{
             return;
           }
           break;
-            
+            /*
         case prefix+'news':
           ruolo = "news";
 
@@ -864,7 +1094,7 @@ client.on('message', async (message) =>{
               VIEW_CHANNEL: null,
             });
           });
-          break;
+          break;*/
         
         case prefix + 'conv':
           var x = argresult;
@@ -882,18 +1112,20 @@ client.on('message', async (message) =>{
           }
 
           case prefix+'level':
+            if(!config.level) return;
             utente = message.mentions.users.first();
             if(!argresult) utente = message.author;
             levelUp(message, utente);
             break;
 
           case prefix+'money':
+            if(!config.economy) return;
             utente = message.mentions.users.first();
             if(utente&&!eco[utente.id])return message.reply("L'utente non ha ancora un conto").then(msg=>eliminazioneMess(message,msg));
             if(!utente) utente = message.author;
 
             let moneyEmbed = new Discord.RichEmbed()
-              .setAuthor(utente.username, utente.displayAvatarURL)
+              .setAuthor(utente.username, utente.displayAvatarURL({dynamic:true}))
               .setColor('#2dc20c')
               .addField("Pocket", currency+eco[utente.id].pocketMoney, true)
               .addField("Bank", currency+eco[utente.id].bankMoney, true)
@@ -906,6 +1138,7 @@ client.on('message', async (message) =>{
             break;
 
           case prefix+'give-money':
+            if(!config.economy) return;
             utente = message.mentions.users.first();
             if(!utente)return message.reply("Devi taggare un utente a cui dare i soldi").then(msg=>eliminazioneMess(message,msg));
             if(!eco[utente.id])return message.reply("L'utente non ha ancora un conto").then(msg=>eliminazioneMess(message,msg));
@@ -914,12 +1147,12 @@ client.on('message', async (message) =>{
             eco[utente.id].pocketMoney+=parseInt(args[1]);
 
             let gMoneyEmbed = new Discord.RichEmbed()
-              .setAuthor(message.author.username, message.author.displayAvatarURL)
+              .setAuthor(message.author.username, message.author.displayAvatarURL({dynamic:true}))
               .setColor('#2dc20c')
               .addField("Soldi dati", args[1]+currency, false)
               .addField("Utente che ha dato", eco[message.author.id].pocketMoney+currency, false)
               .addField("Utente che ha ricevuto", eco[utente.id].pocketMoney+currency, false)
-              .setFooter(utente.username, utente.displayAvatarURL)
+              .setFooter(utente.username, utente.displayAvatarURL({dynamic:true}))
             message.channel.send(gMoneyEmbed).then(message.delete(10000));
 
             fs.writeFile("./eco.json", JSON.stringify(eco), (err) => {
@@ -928,6 +1161,7 @@ client.on('message', async (message) =>{
             break;
 
           case prefix+'add-money':
+            if(!config.economy) return;
             if(permissionLevel<4)return message.reply("Non hai il permesso necessario per usare questo comando").then(msg=>eliminazioneMess(message,msg));
             
             utente = message.mentions.users.first();
@@ -941,6 +1175,7 @@ client.on('message', async (message) =>{
             break;
 
           case prefix+'remove-money':
+            if(!config.economy) return;
             if(permissionLevel<4)return message.reply("Non hai il permesso necessario per usare questo comando").then(msg=>eliminazioneMess(message,msg));
             
             utente = message.mentions.users.first();
@@ -955,8 +1190,10 @@ client.on('message', async (message) =>{
             break;
 
           case prefix+'allLevel':
-            let levelEmbed = new Discord.RichEmbed()
-              .setAuthor(client.user.username, client.user.displayAvatarURL)
+            if(!config.level) return;
+            if(message.author.id!=bOwner)
+            var levelEmbed = new Discord.RichEmbed()
+              .setAuthor(client.user.username, client.user.displayAvatarURL({dynamic:true}))
             nextLv[1] = Math.floor(1*100*Math.PI);
             let s = "Level 1: "+Math.floor(1*100*Math.PI);
             for (let i = 2; i < 100; i++) {
@@ -973,7 +1210,8 @@ client.on('message', async (message) =>{
             break;
 
           case prefix+'restartLevel':
-            if(message.author.id!=io)return;
+            if(!config.level) return;
+            if(message.author.id!=bOwner)return;
             var xpNec;
             for(var key in xp){
               for (let i = 1; i < 100; i++) {
@@ -993,7 +1231,7 @@ client.on('message', async (message) =>{
             break;
 
           case prefix+'spam':
-            if((permissionLevel<5&&message.mentions.users.first().id!='224187407921053696')||permissionLevel<2){message.reply("Error 401: Access denied"); return;}
+            if(permissionLevel<5&&message.mentions.users.first().id!='224187407921053696'){message.reply("Error 401: Access denied"); return;}
             if(!message.mentions.users.first()){message.reply("Devi taggare qualcuno");return;}
             let numMess=messageAr[2];
             if(!numMess){message.reply("Numero messaggi non specificato, settatto a 10 di default");numMess=10;}
@@ -1016,17 +1254,22 @@ client.on('message', async (message) =>{
               if(numMess==0){
                 clearInterval(spamInterval);
                 messCount.edit("Spam completato!!!")
-                return;}
-            }, 500)
+                return;
+              }
+            }, 1000)
             break;
 
-            case prefix+'rick-astley':
-              message.channel.send("https://www.youtube.com/watch?v=TzXXHVhGXTQ");
+          case prefix+'rick-astley':
+            message.channel.send("https://www.youtube.com/watch?v=TzXXHVhGXTQ");
             break;
 
-            case prefix+'catgirl':
-              sendImage(message, "catgirl anime");
-              break;
+          case prefix+'catgirl':
+            sendImage(message, "catgirl anime");
+            break;
+          case prefix+'image':
+            if(!argresult)return message.reply("nessun argomento inserito").then(msg => eliminazioneMess(message, msg))
+            sendImage(message, argresult);
+            break;
       }
   
   
@@ -1035,64 +1278,66 @@ client.on('message', async (message) =>{
         if(!message.channel.guild)return
         if(message.channel.guild.id!=gu)return;
       //////////////////////////////////LEVEL SYSYEM//////////////////////////////////////////
-          if (!talkedRecently.has(message.author.id)) {
-            //let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI/2);
-            let nextLvXp = 0;
-            xp[message.author.id].xp+=Math.floor(Math.random() * (50-15+1)) + 15;
-            for (let i = 1; i <= xp[message.author.id].level; i++) {
-              nextLvXp += nextLv[i.toString()];
-            }
-            if(xp[message.author.id].xp>=nextLvXp){
-              xp[message.author.id].level++;
-              for(var key in lvRoles){
-                if(key==xp[message.author.id].level){
-                  message.member.addRole(message.guild.roles.get(lvRoles[key]));
-                  message.reply("Hai guadagnato un nuovo fantastico ruolo!");
-                }
-              }
-              let xpNec = 0;
-              for (let i = 1; i <= xp[message.author.id].level; i++) {
-                xpNec += nextLv[i.toString()];
-              }
-              let lvlEmbed = new Discord.RichEmbed()
-                .setAuthor(message.author.username)
-                .setColor('#82c394')
-                .addField("Congratulazioni", "Sei appena salito di livello, ora sei al lv: "+xp[message.author.id].level, true)
-                .setFooter(Math.floor(xpNec)-Math.floor(xp[message.author.id].xp)+" XP per il prossimo livello", message.author.displayAvatarURL);
-                message.channel.send(lvlEmbed).then(msg => {
-                  msg.delete(20000)
-                });
-            }
-  
-  
-            fs.writeFile("./xp.json", JSON.stringify(xp), (err) => {
-              if(err) message.channel.send(err)
-            });
-            // Adds the user to the set so that they can't talk for a minute
-            talkedRecently.add(message.author.id);
-            setTimeout(() => {
-              // Removes the user from the set after a minute
-              talkedRecently.delete(message.author.id);
-            }, 60000);
+        if (!talkedRecently.has(message.author.id)) {
+          if(!config.level)return;
+          //let nextLvXp = Math.floor(xp[message.author.id].level*100*Math.PI)+Math.floor((xp[message.author.id].level-1)*100*Math.PI/2);
+          let nextLvXp = 0;
+          xp[message.author.id].xp+=Math.floor(Math.random() * (50-15+1)) + 15;
+          for (let i = 1; i <= xp[message.author.id].level; i++) {
+            nextLvXp += nextLv[i.toString()];
           }
+          if(xp[message.author.id].xp>=nextLvXp){
+            xp[message.author.id].level++;
+            for(var key in lvRoles){
+              if(key==xp[message.author.id].level){
+                message.member.addRole(message.guild.roles.cache.get(lvRoles[key]));
+                message.reply("Hai guadagnato un nuovo fantastico ruolo!");
+              }
+            }
+            let xpNec = 0;
+            for (let i = 1; i <= xp[message.author.id].level; i++) {
+              xpNec += nextLv[i.toString()];
+            }
+            let lvlEmbed = new Discord.RichEmbed()
+              .setAuthor(message.author.username)
+              .setColor('#82c394')
+              .addField("Congratulazioni", "Sei appena salito di livello, ora sei al lv: "+xp[message.author.id].level, true)
+              .setFooter(Math.floor(xpNec)-Math.floor(xp[message.author.id].xp)+" XP per il prossimo livello", message.author.displayAvatarURL({dynamic:true}));
+              message.channel.send(lvlEmbed).then(msg => {
+                msg.delete(20000)
+              });
+          }
+
+
+          fs.writeFile("./xp.json", JSON.stringify(xp), (err) => {
+            if(err) message.channel.send(err)
+          });
+          // Adds the user to the set so that they can't talk for a minute
+          talkedRecently.add(message.author.id);
+          setTimeout(() => {
+            // Removes the user from the set after a minute
+            talkedRecently.delete(message.author.id);
+          }, 60000);
+        }
 
 
 
       ////////////////////////////////ECONOMY SYSYEM//////////////////////////////////////////
-          if(!talkedNoMoney.has(message.author.id)){
-            eco[message.author.id].pocketMoney+=Math.floor(Math.random() * (10-5+1)) + 5;
-  
-  
-            fs.writeFile("./eco.json", JSON.stringify(eco), (err) => {
-              if(err) message.channel.send(err)
-            });
-            // Adds the user to the set so that they can't talk for a minute
-            talkedNoMoney.add(message.author.id);
-            setTimeout(() => {
-              // Removes the user from the set after a minute
-              talkedNoMoney.delete(message.author.id);
-            }, 40000);
-          }
+        if(!talkedNoMoney.has(message.author.id)){
+          if(!config.economy)return
+          eco[message.author.id].pocketMoney+=Math.floor(Math.random() * (10-5+1)) + 5;
+
+
+          fs.writeFile("./eco.json", JSON.stringify(eco), (err) => {
+            if(err) message.channel.send(err)
+          });
+          // Adds the user to the set so that they can't talk for a minute
+          talkedNoMoney.add(message.author.id);
+          setTimeout(() => {
+            // Removes the user from the set after a minute
+            talkedNoMoney.delete(message.author.id);
+          }, 40000);
+        }
 
       }
     
@@ -1110,206 +1355,220 @@ client.on('message', async (message) =>{
 client.on('error', (errore) => {
   console.log(errore)
   if(errore.discordAPIError) return client.user.lastMessage.channel.send(errore.discordAPIRError.method)
-  client.users.get(io).send("Errore non catchato\n"+errore)
+  client.users.fetch(bOwner).send("Errore non catchato\n"+errore)
 })
 
 client.on('messageReactionAdd', async (reaction, utente) => {
-  if(reaction.message.id==ticketMessage){
-    let cancel = false;
+  try{
+    if(reaction.message.id==ticketMessage){
+      if(!ticket)return;
+      let cancel = false;
 
-    if(!ticket[utente.id]){
-      ticket[utente.id]={
-        nTickets:0
+      if(!ticket[utente.id]){
+        ticket[utente.id]={
+          nTickets:0
+        }
       }
-    }
 
-    if(ticketRecently[utente.id])return reaction.message.reply("Hai già creato un ticket di recente, aspetta almeno 1 ora tra un ticket e l'altro").then(msg=>eliminazioneMess(message,msg));
+      if(ticketRecently[utente.id])return reaction.message.reply("Hai già creato un ticket di recente, aspetta almeno 1 ora tra un ticket e l'altro").then(msg=>eliminazioneMess(message,msg));
 
-    if(parseInt(ticket[utente.id].nTickets)==3)return reaction.message.reply("Hai già raggiunto il limite massimo di support tickets(3)").then(msg=>eliminazioneMess(null,msg));
+      if(parseInt(ticket[utente.id].nTickets)==3)return reaction.message.reply("Hai già raggiunto il limite massimo di support tickets(3)").then(msg=>eliminazioneMess(null,msg));
 
-    let createTicketEmbed = new Discord.RichEmbed()
-      .setTitle("Creazione support ticket")
-      .setDescription("Inserire l'oggetto del ticket")
-      .setFooter("Dopo 60 secondi l'operazione verrà cancellata")
-    let msg = await utente.send(createTicketEmbed)
-    let dm = /* utente.createDM(); */msg.channel;
+      let createTicketEmbed = new Discord.RichEmbed()
+        .setTitle("Creazione support ticket")
+        .setDescription("Inserire l'oggetto del ticket")
+        .setFooter("Dopo 60 secondi l'operazione verrà cancellata")
+      let msg = await utente.send(createTicketEmbed)
+      let dm = /* utente.createDM(); */msg.channel;
 
-    let filter = m => m.author.id==utente.id;
+      let filter = m => m.author.id==utente.id;
 
-    let ticketEmbed = new Discord.RichEmbed();
-    await dm.awaitMessages(filter, {max:1, time:60000, errors:['time']})
-      .then(collected => ticketEmbed.setTitle(collected.first().content))
-      .catch(err => function(){utente.send("Operazione annullata")
-        console.log(err)
+      let ticketEmbed = new Discord.RichEmbed();
+      await dm.awaitMessages(filter, {max:1, time:60000, errors:['time']})
+        .then(collected => ticketEmbed.setTitle(collected.first().content))
+        .catch(err => function(){utente.send("Operazione annullata")
+          console.log(err)
+          cancel=true;
+        });
+      if(cancel)return;
+
+      createTicketEmbed.setDescription("Inserire una descrizione per il ticket")
+      await utente.send(createTicketEmbed);
+
+      await dm.awaitMessages(filter, {max:1, time:60000, errors:['time']})
+        .then(collected => ticketEmbed.setDescription(collected.first().content))
+        .catch(function(){utente.send("Operazione annullata")
         cancel=true;
       });
-    if(cancel)return;
+      if(cancel)return
 
-    createTicketEmbed.setDescription("Inserire una descrizione per il ticket")
-    await utente.send(createTicketEmbed);
-
-    await dm.awaitMessages(filter, {max:1, time:60000, errors:['time']})
-      .then(collected => ticketEmbed.setDescription(collected.first().content))
-      .catch(function(){utente.send("Operazione annullata")
-      cancel=true;
-    });
-    if(cancel)return
-
-    createTicketEmbed.setDescription("Reagire con :white_check_mark: per aggiungere uno screenshot, reagire con :negative_squared_cross_mark:")
-    await utente.send(createTicketEmbed).then(msg=>{
-    //await wait(2000)
-    msg.react('✅').then(msg.react('❎'))
-    })
-
-    let filtro = (reaction, user) => {
-      return ['✅', '❎'].includes(reaction.emoji.name) && user.id===utente.id
-    }
-    await dm.lastMessage.awaitReactions(filtro, {max: 1, time:60000, errors:['time']})
-      .then(async function(){
-        if(dm.lastMessage.reactions.get('✅').users.get(utente.id)){
-          createTicketEmbed.setDescription("Inviare uno screenshot");
-          createTicketEmbed.setFooter("Dopo 180 secondi l'operazione verrà cancellata")
-          await utente.send(createTicketEmbed);
-
-          await dm.awaitMessages(filter, {max:1, time:180000, errors:['time']})
-            .then(async() => {
-              await wait(2000)
-              ticketEmbed.setImage(utente.lastMessage.attachments.first().url);
-            })
-            .catch(function(){utente.send("Operazione annullata")
-              cancel=true;
-            })
-          }
-        })
-      .catch(function(){utente.send("Operazione annullata")
-        cancel=true;
+      createTicketEmbed.setDescription("Reagire con :white_check_mark: per aggiungere uno screenshot, reagire con :negative_squared_cross_mark:")
+      await utente.send(createTicketEmbed).then(msg=>{
+      //await wait(2000)
+      msg.react('✅').then(msg.react('❎'))
       })
-    if(cancel)return;
 
-    ticket[utente.id].nTickets=parseInt(ticket[utente.id].nTickets)+1;
-    
-    ticket.count=parseInt(ticket.count)+1;
-    var s=""+parseInt(ticket.count);
-    while (s.length < 3) s = "0" + s;
-    s="#"+s;
-
-    ticketEmbed.setFooter("Ticket richiesto da "+utente.username);
-
-    utente.send("Operazione completata, attendi che un membro dello staff accetti il tuo ticket")
-
-    ticketRecently.add(utente.id);
-    setTimeout(() => {
-      // Removes the user from the set after 6 min
-      ticketRecently.delete(utente.id);
-    },360000);
-
-    client.channels.get(logChan).send(new Discord.RichEmbed()
-    .setAuthor("Ticket "+s, client.user.displayAvatarURL)
-    .setColor('#E1F512')
-    .setDescription("Ticket richiesto da "+utente.tag)
-    .setFooter("User id: "+utente.id, utente.displayAvatarURL))
-
-    await reaction.message.guild.createChannel(s, {
-      type:"text",
-      permissionOverwrites: [{
-        id: utente.id,
-        allow: ['VIEW_CHANNEL']
-      },
-      {
-        id: reaction.message.guild.id,
-        deny: ['VIEW_CHANNEL']
-      },
-      {
-        id: "681825632891699227",
-        allow: ['VIEW_CHANNEL']
-      }]
-    }).then(ch=> ch.send(ticketEmbed)
-      .then(async(msg) => {
-        await msg.react('✅')
-        await msg.react('❎')
-        filtro = (reaction, user) => {
-          return ['✅', '❎'].includes(reaction.emoji.name) && user.id!=client.user.id
-        }
-        await msg.awaitReactions(filtro, {max: 1, time:86400000, errors:['time']})
+      let filtro = (reaction, user) => {
+        return ['✅', '❎'].includes(reaction.emoji.name) && user.id===utente.id
+      }
+      await dm.lastMessage.awaitReactions(filtro, {max: 1, time:60000, errors:['time']})
         .then(async function(){
-          /* await wait(1000)*/
-          if(msg.reactions.get('✅').count>1){
-            utente.send("Ticket accettato")
-            ch.overwritePermissions(utente.id,{
-              SEND_MESSAGES:true
-            })
-            msg.reactions.get('✅').remove()
-            msg.reactions.get('❎').remove()
+          if(dm.lastMessage.reactions.cache.get('✅').users.cache.get(utente.id)){
+            createTicketEmbed.setDescription("Inviare uno screenshot");
+            createTicketEmbed.setFooter("Dopo 180 secondi l'operazione verrà cancellata")
+            await utente.send(createTicketEmbed);
 
-            msg.channel.send("Ticket accettato da un membro della staff")
-
-            await client.channels.get(logChan).send(new Discord.RichEmbed()
-            .setAuthor("Ticket "+s, client.user.displayAvatarURL)
-            .setColor('#0CCB06')
-            .setDescription("Ticket aperto da (non ho voglia di scrivere da chi)")
-            .setFooter("User id: 42"))
-
-            await msg.react('🔒')
-            filtro = (reaction, user) => {
-              return ['🔒'].includes(reaction.emoji.name) && user.id!=client.user.id
+            await dm.awaitMessages(filter, {max:1, time:180000, errors:['time']})
+              .then(async() => {
+                await wait(2000)
+                ticketEmbed.setImage(utente.lastMessage.attachments.first().url);
+              })
+              .catch(function(){utente.send("Operazione annullata")
+                cancel=true;
+              })
             }
-            await msg.awaitReactions(filtro, {max:1, time:259200000, errors:['time']})
-            .then(async function(){
-              ticket[utente.id].nTickets=parseInt(ticket[utente.id].nTickets)-1;
-              fs.writeFile("./ticket.json", JSON.stringify(ticket), (err) => {
-                if(err) message.channel.send(err)
-              });
+          })
+        .catch(function(){utente.send("Operazione annullata")
+          cancel=true;
+        })
+      if(cancel)return;
 
-              ch.overwritePermissions(utente.id,{
-                  VIEW_CHANNEL:false
+      ticket[utente.id].nTickets=parseInt(ticket[utente.id].nTickets)+1;
+      
+      ticket.count=parseInt(ticket.count)+1;
+      var s=""+parseInt(ticket.count);
+      while (s.length < 3) s = "0" + s;
+      s="#"+s;
+
+      ticketEmbed.setFooter("Ticket richiesto da "+utente.username);
+
+      utente.send("Operazione completata, attendi che un membro dello staff accetti il tuo ticket")
+
+      ticketRecently.add(utente.id);
+      setTimeout(() => {
+        // Removes the user from the set after 6 min
+        ticketRecently.delete(utente.id);
+      },360000);
+
+      client.channels.cache.get(logChan).send(new Discord.RichEmbed()
+      .setAuthor("Ticket "+s, client.user.displayAvatarURL({dynamic:true}))
+      .setColor('#E1F512')
+      .setDescription("Ticket richiesto da "+utente.tag)
+      .setFooter("User id: "+utente.id, utente.displayAvatarURL({dynamic:true})))
+
+      await reaction.message.guild.channels.create(s, {
+        type:"text",
+        permissionOverwrites: [{
+          id: utente.id,
+          allow: ['VIEW_CHANNEL']
+        },
+        {
+          id: reaction.message.guild.id,
+          deny: ['VIEW_CHANNEL']
+        },
+        {
+          id: "681825632891699227",
+          allow: ['VIEW_CHANNEL']
+        }]
+      }).then(ch=> ch.send(ticketEmbed)
+        .then(async(msg) => {
+          await msg.react('✅')
+          await msg.react('❎')
+          filtro = (reaction, user) => {
+            return ['✅', '❎'].includes(reaction.emoji.name) && user.id!=client.user.id
+          }
+          await msg.awaitReactions(filtro, {max: 1, time:86400000, errors:['time']})
+          .then(async function(){
+            /* await wait(1000)*/
+            if(msg.reactions.cache.get('✅').count>1){
+              utente.send("Ticket accettato")
+              ch.overwritePermissions([
+                {
+                  id: utente.id,
+                  allow: ['SEND_MESSAGES']
+                }
+              ])
+              msg.reactions.cache.get('✅').remove()
+              msg.reactions.cache.get('❎').remove()
+
+              msg.channel.send("Ticket accettato da un membro della staff")
+
+              await client.channels.cache.get(logChan).send(new Discord.RichEmbed()
+              .setAuthor("Ticket "+s, client.user.displayAvatarURL({dynamic:true}))
+              .setColor('#0CCB06')
+              .setDescription("Ticket aperto da (non ho voglia di scrivere da chi)")
+              .setFooter("User id: 42"))
+
+              await msg.react('🔒')
+              filtro = (reaction, user) => {
+                return ['🔒'].includes(reaction.emoji.name) && user.id!=client.user.id
+              }
+              await msg.awaitReactions(filtro, {max:1, time:259200000, errors:['time']})
+              .then(async function(){
+                ticket[utente.id].nTickets=parseInt(ticket[utente.id].nTickets)-1;
+                fs.writeFile("./ticket.json", JSON.stringify(ticket), (err) => {
+                  if(err) message.channel.send(err)
+                });
+
+                ch.overwritePermissions([
+                  {
+                    id: utente.id,
+                    deny: ['VIEW_CHANNEL']
+                  }
+                ])
+
+                await msg.reactions.cache.get('🔒').remove()
+                ch.send(new Discord.RichEmbed()
+                  .setTitle("Ticket chiuso")
+                  .setFooter("Ticket chiuso da "+msg.reactions.cache.get('🔒').users.first().username,msg.reactions.cache.get('🔒').users.first().displayAvatarURL({dynamic:true})))
+                .then(async msg=>{
+                  await msg.react('🗑️')
+                  deleteTicket(msg, false)
+                })
               })
-
-              await msg.reactions.get('🔒').remove()
-              ch.send(new Discord.RichEmbed()
+              .catch(err => {
+                console.log(err)
+                ticket[utente.id].nTickets=parseInt(ticket[utente.id].nTickets)-1;
+                fs.writeFile("./ticket.json", JSON.stringify(ticket), (err) => {
+                  if(err) message.channel.send(err)
+                });
+                ch.overwritePermissions([
+                  {
+                    id: utente.id,
+                    deny: ['VIEW_CHANNEL']
+                  }
+                ])
+                ch.send(new Discord.RichEmbed()
                 .setTitle("Ticket chiuso")
-                .setFooter("Ticket chiuso da "+msg.reactions.get('🔒').users.first().username,msg.reactions.get('🔒').users.first().displayAvatarURL))
-              .then(async msg=>{
-                await msg.react('🗑️')
-                deleteTicket(msg, false)
+                .setFooter("Ticket chiuso da "+msg.reactions.cache.get('🔒').users.first().username,msg.reactions.cache.get('🔒').users.first().displayAvatarURL({dynamic:true})))
+                .then(async msg=>{
+                  await msg.react('🗑️')
+                  deleteTicket(msg, true)
+                })
               })
+            }
+            
+            else if(msg.reactions.cache.get('❎').count>1){
+              msg.reactions.cache.get('✅').remove()
+              msg.reactions.cache.get('❎').remove()
+              rejectTicket(msg, utente, ch)
+            }
             })
             .catch(err => {
               console.log(err)
-              ticket[utente.id].nTickets=parseInt(ticket[utente.id].nTickets)-1;
-              fs.writeFile("./ticket.json", JSON.stringify(ticket), (err) => {
-                if(err) message.channel.send(err)
-              });
-              ch.overwritePermissions(utente.id,{
-                VIEW_CHANNEL:false
-              })
-              ch.send(new Discord.RichEmbed()
-              .setTitle("Ticket chiuso")
-              .setFooter("Ticket chiuso da "+msg.reactions.get('🔒').users.first().username,msg.reactions.get('🔒').users.first().displayAvatarURL))
-              .then(async msg=>{
-                await msg.react('🗑️')
-                deleteTicket(msg, true)
-              })
+              rejectTicket(msg, utente, ch)
             })
-          }
-          
-          else if(msg.reactions.get('❎').count>1){
-            msg.reactions.get('✅').remove()
-            msg.reactions.get('❎').remove()
-            rejectTicket(msg, utente, ch)
-          }
           })
-          .catch(err => {
-            console.log(err)
-            rejectTicket(msg, utente, ch)
-          })
-        })
-      )
+        )
 
-    reaction.remove(utente);
+      reaction.remove(utente);
 
-    fs.writeFile("./ticket.json", JSON.stringify(ticket), (err) => {
-      if(err) message.channel.send(err)
-    });
+      fs.writeFile("./ticket.json", JSON.stringify(ticket), (err) => {
+        if(err) message.channel.send(err)
+      });
+    }
+  }catch(err){
+    console.log(err);
   }
 })
 
@@ -1341,21 +1600,19 @@ client.on('messageReactionAdd', async (reaction, utente) => {
 })*/
 client.on('guildCreate', guild => {
   let SendChannel = guild.systemChannel
-  if(!SendChannel) SendChannel = guild.channels.find("name", "general") || guild.channels.find("name", "chat") || guild.channels.find("name", "generale") || guild.channels.find("name", "lobby");
+  if(!SendChannel) SendChannel = guild.channels.cache.find("name", "general") || guild.channels.cache.find("name", "chat") || guild.channels.cache.find("name", "generale") || guild.channels.cache.find("name", "lobby");
   if(!SendChannel){
     guild.channels.cache.forEach((channel) => {
       if(channel.type == "text" && SendChannel == "") {
         if(channel.permissionsFor(guild.me).has("SEND_MESSAGES")) {
           SendChannel = channel;
+          SendChannel.send('Sono un bot ancora in beta, il mio prefisso è `'+prefix+'`\n scrivi `'+prefix+'help` per ottenere i miei comandi\nil mio creatore è <@143318398548443136> `Mina#3690`, contattalo se incontri un bug o vuoi suggerire una feature');
         }
       }
     })
   }
-
-  if(SendChannel) SendChannel.send('Sono un bot ancora in beta, il mio prefisso è `/`\n scrivi `/help` per ottenere i miei comandi\nil mio creatore è <@143318398548443136> `Mina#3690`, contattalo se incontri un bug o vuoi suggerire una feature');
-
 })
-
+/*
 
 client.on('voiceStateUpdate', (oldMembro, newMembro) => {
   let ruolo = newMembro.guild.roles.find(role => role.name === 'vocal')
@@ -1369,7 +1626,7 @@ client.on('voiceStateUpdate', (oldMembro, newMembro) => {
   
 })
 
-
+*/
 
 
 
