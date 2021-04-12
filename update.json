@@ -1,6 +1,6 @@
 {
-    "version":"0.5",
-    "num":"1",
-    "descizione":"Aggiornato codice a discord.js@V12\nComando image\nComandi per disattivare i moduli level, economy e ticket\nComando moduli",
+    "version":"0.6.3",
+    "num":"6",
+    "descizione":"Cambiato prefisso a `s!`\nAggiunta verifica\nAggiunti autoRoles\nImplementato modulo ticket\nInizio test modulo ticket",
     "todo":"Shop system e bho"
 }

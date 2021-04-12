@@ -4,28 +4,47 @@
 const Discord = require('discord.js');
 const ms = require('ms');
 const fs = require('fs');
+const util = require('util');
+const { Readable } = require('stream');
 const opus = require('opusscript');
 const cheerio = require('cheerio');
 const request = require('request');
+const axios = require('axios');
+const convert = require('xml-js');
+const witClient = require('node-witai-speech');
+//const gspeech = require('@google-cloud/speech');
+/*const gspeechclient = new gspeech.SpeechClient({
+  projectId: 'discordbot',
+  keyFilename: 'gspeech_key.json'
+});*/
 //const speech = require('web-speech');
-const { Client, Attachment, RichEmbed } = require('discord.js');
+const { Client, MessageAttachment, MessageEmbed } = require('discord.js');
 const client = new Discord.Client();
+client.commands = new Discord.Collection();
 
 const config = require("./config.json");
 var xp = require("./xp.json");
 var eco = require("./eco.json");
 var ticket = require("./ticket.json");
 var nextLv = require("./nextLv.json");
+const { setInterval } = require('timers');
 //const { request } = require('http');
 
 const bOwner = config.ownerID;
 const prefix = config.prefix;
 const token = config.token;
 const gu = config.guild;
+const commandFiles = fs.readdirSync('./commands').filter(file => file.endsWith('.js'));
 const talkedRecently = new Set();
 const talkedNoMoney = new Set();
 const ticketRecently = new Set();
-const lvRoles = {0:'682658762393518251', 5:'682658760208023570', 10:'682658757943361561', 20:'682658755824844846', 30:'682658749961601028'}
+const lvRoles = {0:'691294354463129680', 5:'691294454669246514', 10:'691294882978857071', 15:'691294926746419200', 20:'691295107198222338', 25:'691295209925115924', 30:'691295312912056340'}
+const autoRoles = ['790224792623251476', '691294354463129680', '790222679349133333', '790617719519051806']
+
+for (const file of commandFiles) {
+	const command = require(`./commands/${file}`);
+	client.commands.set(command.name, command);
+}
 
 var permissionLevel = 0;
 var tempoMute = [[]];
@@ -36,13 +55,17 @@ var xpTemp = 0;
 var entrate1 = 0;
 var entrate2 = 0;
 var entrate3 = 0;
-var logChan = "783976312955076629";
+var logChan = "804824311290527785";
 const namek = "316988662799925249";
 const io = "143318398548443136";
-var ticketMessage = '708369096571617472';
+var ticketMessage = '804755590500712504';
+var ticketChannel = '802609514335436810';
 var menzionare = true;
 var tagTime = 60;
 var pingRole;
+var imageCool = false;
+var witAI_lastcallTS = null;
+var connections = {};
 
 
 function eliminazioneMess(message, msg)//funzione per eliminare il messaggio di risposta
@@ -60,12 +83,134 @@ function wait(ms){
     })
 }
 
+function sleep(ms) {
+  return new Promise((resolve) => {
+    setTimeout(resolve, ms);
+  });
+}
+
+async function transcribe_witai(buffer) {
+  try {
+      // ensure we do not send more than one request per second
+      if (witAI_lastcallTS != null) {
+          let now = Math.floor(new Date());    
+          while (now - witAI_lastcallTS < 1000) {
+              console.log('sleep')
+              await sleep(100);
+              now = Math.floor(new Date());
+          }
+      }
+  } catch (e) {
+      console.log('transcribe_witai 837:' + e)
+  }
+
+  try {
+      console.log('transcribe_witai')
+      const extractSpeechIntent = util.promisify(witClient.extractSpeechIntent);
+      var stream = Readable.from(buffer);
+      const contenttype = "audio/raw;encoding=signed-integer;bits=16;rate=48k;endian=little"
+      const output = await extractSpeechIntent("2JV7V6NIWRP6PEIK4UUH6ARIM27FED5N", stream, contenttype)
+      witAI_lastcallTS = Math.floor(new Date());
+      console.log(output)
+      stream.destroy()
+      if (output && '_text' in output && output._text.length)
+          return output._text
+      if (output && 'text' in output && output.text.length)
+          return output.text
+      return output;
+  } catch (e) { console.log('transcribe_witai 851:' + e); console.log(e) }
+}
+
+async function transcribe_gspeech(buffer) {
+  try {
+      console.log('transcribe_gspeech')
+      const bytes = buffer.toString('base64');
+      const audio = {
+        content: bytes,
+      };
+      const config = {
+        encoding: 'LINEAR16',
+        sampleRateHertz: 48000,
+        languageCode: 'it-IT',  // https://cloud.google.com/speech-to-text/docs/languages
+      };
+      const request = {
+        audio: audio,
+        config: config,
+      };
+
+      const [response] = await gspeechclient.recognize(request);
+      const transcription = response.results
+        .map(result => result.alternatives[0].transcript)
+        .join('\n');
+      console.log(`gspeech: ${transcription}`);
+      return transcription;
+
+  } catch (e) { console.log('transcribe_gspeech 368:' + e) }
+}
+
+async function convert_audio(input) {
+  try {
+      // stereo to mono channel
+      const data = new Int16Array(input)
+      const ndata = new Int16Array(data.length/2)
+      for (let i = 0, j = 0; i < data.length; i+=4) {
+          ndata[j++] = data[i]
+          ndata[j++] = data[i+1]
+      }
+      return Buffer.from(ndata);
+  } catch (e) {
+      console.log(e)
+      console.log('convert_audio: ' + e)
+      throw e;
+  }
+}
+
+async function vocalCmd(connection){
+  connection.on('speaking', async (user, speaking) =>{
+    if (speaking.bitfield == 0 || user.bot) {
+      return
+    }
+    console.log(`I'm listening to ${user.username}`)
+    let audio = connection.receiver.createStream(user, {mode: 'pcm'});
+
+    audio.on('error',  (e) => { 
+      console.log('audioStream: ' + e)
+    });
+    let buffer = [];
+    audio.on('data', (data) => {
+      buffer.push(data)
+    })
+
+    audio.on('end', async () => {
+      buffer = Buffer.concat(buffer)
+      const duration = buffer.length / 48000 / 4;
+      console.log("duration: " + duration)
+
+      if (duration < 0.8 || duration > 19) { // 20 seconds max dur
+        console.log("TOO SHORT / TOO LONG; SKPPING")
+        return;
+      }
+
+      try {
+        let new_buffer = await convert_audio(buffer)
+        let out = await transcribe_witai(new_buffer);
+        if (out != null)
+          message.channel.send(out)
+      } catch (e) {
+          console.log('tmpraw rename: ' + e)
+      }
+
+
+    })
+  })
+}
+
 function levelUp(message, utente){
   let xpNec = 0;
   for (let i = 1; i <= xp[utente.id].level; i++) {
     xpNec += nextLv[i.toString()];
   }
-  let lvlEmbed = new Discord.RichEmbed()
+  let lvlEmbed = new Discord.MessageEmbed()
     .setAuthor(utente.username)
     .setColor('#14c5a2')
     .addField('Level', xp[utente.id].level, true)
@@ -88,9 +233,16 @@ function sayError(message){
   }
 }
 
-function sendImage(message, topic){
+async function sendImage(message, topic){
+  if(imageCool)return message.reply("comando in cooldown");
+  imageCool=true;
+  setTimeout(function(){
+    imageCool=false;
+  },1000)
+  message.reply("Ricerca con topic: "+topic)
+
   var options = {
-    url: "http://results.dogpile.com/serp?qc=images&q="+topic,
+    url: "https://www.google.it/search?tbm=isch&q="+topic,
     method: "GET",
     headers: {
       "Accept": "text/html",
@@ -98,21 +250,24 @@ function sendImage(message, topic){
     }
   };
 
-  request(options, function(error, response, responseBody){
+  request(options, async function(error, response, responseBody){
     if(error){
-      message.channel.reply("Errore imprevisto").then(msg=>eliminazioneMess(message,msg));
+      message.reply("Errore imprevisto").then(msg=>eliminazioneMess(message,msg));
       return;
     }
-
+    fs.writeFile("./index.html", responseBody, (err) => {
+      if(err) message.channel.send(err)
+    });
     $ = cheerio.load(responseBody)
 
-    var links = $(".image a.link");
-    var urls = new Array(links.length).fill(0).map((v, i) => links.eq(i).attr("href"));
+    var links = await $(".RAyV4b img.t0fcAb");
+
+    var urls = new Array(links.length).fill(0).map((v, i) => links.eq(i).attr("src"));
 
     console.log(urls);
     
     if(!urls.length){
-      message.channel.reply("Errore imprevisto").then(msg=>eliminazioneMess(message,msg));
+      message.reply("Errore imprevisto").then(msg=>eliminazioneMess(message,msg));
       return;
     }
 
@@ -120,33 +275,84 @@ function sendImage(message, topic){
   })
 }
 
-function rejectTicket(msg, utente, ch){
+async function sendNSFW(message, topic){
+  if(imageCool)return message.reply("comando in cooldown");
+  imageCool=true;
+  setTimeout(function(){
+    imageCool=false;
+  },1000)
+  message.reply("Ricerca con topic: "+topic)
+
+  var options = {
+    url: "https://rule34.xxx/index.php?page=dapi&s=post&q=index&tags="+topic,
+    method: "GET",
+    headers: {
+      "Accept": "text/html",
+      "User-Agent": "Chrome"
+    }
+  };
+
+  request(options, async function(error, response, responseBody){
+    if(error){
+      message.reply("Errore imprevisto").then(msg=>eliminazioneMess(message,msg));
+      return;
+    }
+
+    let json = await convert.xml2js(responseBody, {compact:true, ignoreDeclaration: true})
+    let posts = json.posts.post
+/*
+    fs.writeFile("./index.html", JSON.stringify(json.posts.post), (err) => {
+      if(err) message.channel.send(err)
+    });
+*/    
+    //console.log(urls);
+    
+    if(!posts){
+      message.reply("Non è stato trovato nulla").then(msg=>eliminazioneMess(message,msg));
+      return;
+    }
+
+    let url = posts[Math.floor(Math.random()*posts.length)]._attributes.file_url
+
+    message.channel.send(url);
+  })
+}
+
+async function rejectTicket(msg, utente, ch){
   utente.send("Ticket respinto")
+  .catch(async () => {
+    (await client.channels.fetch(ticketChannel)).send(utente.toString()+", il tuo ticket è stato rifiutato")
+  })
   ticket[utente.id].nTickets=parseInt(ticket[utente.id].nTickets)-1;
   fs.writeFile("./ticket.json", JSON.stringify(ticket), (err) => {
     if(err) message.channel.send(err)
   });
 
-  ch.overwritePermissions([
-    {
-      id: utente.id,
-      deny: ['VIEW_CHANNEL']
-    }
-  ])
+  try{
+    ch.updateOverwrite(utente.id,
+      {
+        VIEW_CHANNEL: false
+      }, "Support ticket"
+    )
+  }catch(err){
+    console.log(err)
+  }
 
-  client.channels.fetch(logChan).send(new Discord.RichEmbed()
+  (await client.channels.fetch(logChan)).send(new Discord.MessageEmbed()
   .setAuthor("Ticket "+ch.name, client.user.displayAvatarURL({dynamic:true}))
   .setColor('#D49F07')
-  .setDescription("Ticket chiuso da "+msg.reactions.cache.get('❎').users.first().tag)
-  .setFooter("Mod id: "+msg.reactions.cache.get('❎').users.first().id, msg.reactions.cache.get('❎').users.first().displayAvatarURL({dynamic_true})))
+  .setDescription("Ticket respinto da "+(await (await msg.reactions.cache.get('❎').fetch()).users.fetch()).first().tag)
+  .setFooter("Mod id: "+(await (await msg.reactions.cache.get('❎').fetch()).users.fetch()).first().id, (await (await msg.reactions.cache.get('❎').fetch()).users.fetch()).first().displayAvatarURL({dynamic:true})))
 
-  ch.send(new Discord.RichEmbed()
+  ch.send(new Discord.MessageEmbed()
     .setTitle("Ticket chiuso")
-    .setFooter("Ticket chiuso da "+msg.reactions.cache.get('❎').users.first().username,msg.reactions.cache.get('❎').users.first().displayAvatarURL({dynamic:true})))
+    .setFooter("Ticket chiuso da "+(await (await msg.reactions.cache.get('❎').fetch()).users.fetch()).first().username,(await (await msg.reactions.cache.get('❎').fetch()).users.fetch()).first().displayAvatarURL({dynamic:true})))
   .then(async msg=>{
     await msg.react('🗑️')
     deleteTicket(msg, false)
   })
+  msg.reactions.removeAll();
+
 }
 
 async function deleteTicket(msg, error){
@@ -155,30 +361,41 @@ async function deleteTicket(msg, error){
   }
   await msg.awaitReactions(filtro, {max:1, time: 259200000, errors:['time']})
   .then(async ()=>{
-    if(!error)await msg.reactions.cache.get('🗑️').remove()
-    await client.channels.fetch(logChan).send(new Discord.RichEmbed()
+    if(!error)msg.reactions.cache.get('🗑️').users.remove(client.user.id);
+    (await client.channels.fetch(logChan)).send(new Discord.MessageEmbed()
     .setAuthor("Ticket #"+msg.channel.name, client.user.displayAvatarURL({dynamic:true}))
     .setColor('#000000')
-    .setDescription("Ticket eliminato da "+msg.reactions.cache.get('🗑️').users.first().tag)
-    .setFooter("Mod id: "+msg.reactions.cache.get('🗑️').users.first().id,msg.reactions.cache.get('🗑️').users.first().displayAvatarURL({dynamic:true})))
+    .setDescription("Ticket eliminato da "+(await msg.reactions.cache.get('🗑️').users.fetch()).first().tag)
+    .setFooter("Mod id: "+(await msg.reactions.cache.get('🗑️').users.fetch()).first().id,(await msg.reactions.cache.get('🗑️').users.fetch()).first().displayAvatarURL({dynamic:true})))
 
-    if(msg.channel.client.user.id == client.user.id)msg.channel.delete();
+    if(msg.channel.client.user.id == client.user.id)msg.channel.delete("support ticket");
   })
   .catch(async (err)=> {
-    console.log(err)
-    await client.channels.fetch(logChan).send(new Discord.RichEmbed()
+    console.log(err);
+    (await client.channels.fetch(logChan)).send(new Discord.MessageEmbed()
     .setAuthor("Ticket #"+msg.channel.name, client.user.displayAvatarURL({dynamic:true}))
     .setColor('#000000')
-    .setDescription("Ticket eliminato da "+msg.reactions.cache.get('🗑️').users.first().tag)
-    .setFooter("Mod id: "+msg.reactions.cache.get('🗑️').users.first().id,msg.reactions.cache.get('🗑️').users.first().displayAvatarURL({dynamic:true})))
+    .setDescription("Ticket eliminato da "+(await msg.reactions.cache.get('🗑️').users.fetch()).first().tag)
+    .setFooter("Mod id: "+(await msg.reactions.cache.get('🗑️').users.fetch()).first().id,(await msg.reactions.cache.get('🗑️').users.fetch()).first().displayAvatarURL({dynamic:true})))
 
-    if(msg.channel.client.user.id == client.user.id)msg.channel.delete();
+    if(msg.channel.client.user.id == client.user.id)msg.channel.delete("support ticket");
   })
 }
 
-client.on('ready', () => {
+client.on('ready', async() => {
   console.log('Wow il bot è online')
+  client.user.setActivity("I like trains");
+  setInterval(async () => {
+    client.user.setActivity("with my master "+(await client.users.fetch(bOwner)).tag,{type:"PLAYING"})
+    setTimeout(() => {
+      client.user.setActivity("/help | "+prefix+"help",{type:"LISTENING"})
+      setTimeout(() => {
+        client.user.setActivity("prefix-> "+prefix,{type:"WATCHING"})
+      }, 30000);
+    }, 30000);
+  }, 90000);
 
+  (await client.channels.fetch(ticketChannel)).messages.fetch(ticketMessage);
 
   /*client.api.applications(client.user.id).commands.post({data:{
     name: 'info',
@@ -319,7 +536,7 @@ client.on('message', async (message) =>{
   let utente = null;
   
   if(!message.channel.guild)return
-
+  if(message.author.bot)return;
   if(message.content.startsWith(prefix)){
     //400 errors //201 permesso insufficiente
     if(message.member.id == message.guild.ownerID) permissionLevel = 7; //lv 7 = founder kami
@@ -329,47 +546,52 @@ client.on('message', async (message) =>{
     else if(message.member.roles.cache.get("536528397061586974")) permissionLevel = 3; //lv 3 = mod lieutenant
     else if(message.member.roles.cache.get("702441548633341982")) permissionLevel = 2; //lv 2 = helper sbirro
     else if(message.member.roles.cache.get("792500822159917077")||message.member.roles.cache.get("797919391609651221")) permissionLevel = 1; //lv 1 = vip Nephren
-    else permissionLevel = 0; //lv 0 = everyone
+    else permissionLevel = 0; //lv 0 = everyone    
   }
 
-  if(!message.author.bot){
-    //creazione rank per nuovo utente
-    if(config.level){
-      if(!xp[message.author.id]){
-      if(message.channel.guild.id!=gu)return;
-        xp[message.author.id] = {
-          xp: 0,
-          level: 1
-        };
-        message.member.addRole(message.guild.roles.cache.get(lvRoles[0]));
-      }
-    }
-    //creazione acconto per nuovo utente
-    if(config.economy){
-      if(!eco[message.author.id]){
-        if(message.channel.guild.id!=gu)return;
-        eco[message.author.id] = {
-          pocketMoney: 0,
-          bankMoney: 100
-        };
-      }
+  //creazione rank per nuovo utente
+  if(config.level){
+    if(!xp[message.author.id]){
+    if(message.channel.guild.id!=gu)return;
+      xp[message.author.id] = {
+        xp: 0,
+        level: 1
+      };
+      message.member.roles.add(message.guild.roles.cache.get(lvRoles[0]));
     }
   }
-  
+  //creazione acconto per nuovo utente
+  if(config.economy){
+    if(!eco[message.author.id]){
+      if(message.channel.guild.id!=gu)return;
+      eco[message.author.id] = {
+        pocketMoney: 0,
+        bankMoney: 100
+      };
+    }
+  }
+
+  if(!message.content.startsWith(prefix))return;
+
   try{
+    if(message.channel.id == "791783839205818388"&&message.content != "verificato"){
+      message.reply("Verifica fallita").then(msg => eliminazioneMess(message,msg));
+      return;
+    }
+
+    commandName = cmd.slice(prefix.length)
+    if(!client.commands.has(commandName))return;
+    const command = client.commands.get(commandName);
+
+    command.execute(message, args)
     switch(cmd)
       {
-        case prefix+'ping'://pong!
-
-          const m = await message.reply("pong!");
-          m.edit(`**Pong!** Latenza attuale ${m.createdTimestamp - message.createdTimestamp}**ms**. La latenza dell' *API* é ${Math.round(client.ping)}**ms**`);
-
-          break;
+        
         case prefix+'help':
-          var helpEmbed = new Discord.RichEmbed()
-            .setColot('#ff00ff')
+          var helpEmbed = new Discord.MessageEmbed()
+            .setColor('#ff00ff')
             .setAuthor(client.user.username, client.user.avatarURL())
-            .setThumbnail(client.guilds.cache.get(gu).iconURL())
+            .setThumbnail(client.user.username, client.user.avatarURL({dynamic: true}))
             .setTimestamp()
             .setFooter((await client.users.fetch(bOwner)).username, (await client.users.fetch(bOwner)).avatarURL())
           switch(argresult)
@@ -621,78 +843,46 @@ client.on('message', async (message) =>{
 
           break;
 
-        case prefix+'sendasme':
-          //if(message.author.id!=bOwner)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
-          argresult = messageAr.slice(2).join(' ')
-          if(/*!client.guilds.get(messageAr[1])||*/!client.channels.cache.get(messageAr[1])) return message.reply("manca roba o stanza non trovata").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
-
-          client./*guilds.get(messageAr[1]).*/channels.cache.get(messageAr[1]).createWebhook('test', message.author.avatarURL())
-            .then(webhook => {
-              webhook.send(argresult, {
-                'username': message.author.username,
-                'avatarURL': message.author.avatarURL({dynamic:true}),
-              })
-              .then(() => {
-                webhook.delete()
-              })
-              .catch(error =>{
-                console.log(error);
-                sayError(message)
-                return message.reply("Error").then(msg=>eliminazioneMess(msg))
-            })
-            })
-            .catch(error =>{
-                console.log(error);
-                sayError(message);
-                return message.reply("Error").then(msg=>eliminazioneMess(msg))
-            })
-          message.delete()
-          break;
-
-        case prefix+'sendas':
-          if(permissionLevel!=5)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
-          utente = client.users.cache.get(messageAr[2]) || await client.users.fetch(messageAr[2]);
-          stanza = messageAr[1];
-          argresult = messageAr.slice(3).join(' ')
-          if(!client.channels.cache.get(stanza)) return message.reply("manca roba o stanza non trovata").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
-          if(!utente)return message.reply("manca roba o utente non trovato").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
-          client.channels.cache.get(messageAr[1]).createWebhook('test', {avatar:message.author.avatarURL()})
-          .then(webhook => {
-              webhook.send(argresult, {
-                  'username': utente.username,
-                  'avatarURL': utente.avatarURL({dynamic:true})
-              })
-              .then(() => {
-                webhook.delete()
-              })
-              .catch(error =>{
-                  console.log(error);
-                  sayError(message)
-                  return message.reply("Error").then(msg=>eliminazioneMess(msg))
-              })
-          })
-          .catch(error =>{
-              console.log(error);
-              sayError(message);
-              return message.reply("Error").then(msg=>eliminazioneMess(msg))
-          })
-          message.delete()
-          break;
-
-        case prefix+'send':
-          if(permissionLevel!=5)return message.reply("Tu non conosci questo comando").then(msg=>eliminazioneMess(message,msg))
-          argresult = messageAr.slice(2).join(' ')
-          if(/*!client.guilds.get(messageAr[1])||*/!client.channels.cache.get(messageAr[1])) return message.reply("manca roba o stanza non trovata").then(msg=>eliminazioneMess(message,msg)).catch(error=>console.log(error));
-          client.channels.cache.get(messageAr[1]).send(argresult).catch(error=>console.log(error))
-          message.delete()
+        case prefix+"sendRoleInfo":
+          let stanzaID = argresult;
+          if(message.author.id!=bOwner)return;
+          let stanza = await client.channels.fetch(stanzaID);
+          if(!stanza)return;
+          let embeds = require("./embeds/ruoli.json");
+          if(!embeds)return;
+          let attachO = new MessageAttachment("./img/owner1.jpg", "owner_img.jpg")
+          let attachA = new MessageAttachment("./img/admin1.jpg", "admin_img.jpg")
+          let attachC = new MessageAttachment("./img/coordinatore1.jpg", "coordinatore_img.jpg")
+          let attachS = new MessageAttachment("./img/supervisore1.jpg", "supervisore_img.jpg")
+          let attachM = new MessageAttachment("./img/moderatore1.jpg", "moderatore_img.jpg")
+          let attachSt = new MessageAttachment("./img/staff1.jpg", "staff_img.jpg")
+          let attachEM = new MessageAttachment("./img/event master1.jpg", "eventmaster_img.jpg")
+          let attachE = new MessageAttachment("./img/event1.jpg", "event_img.jpg")
+          stanza.createWebhook('info ruoli', {
+            avatar: client.user.avatarURL(),
+            
+          }).then(w => w.send({
+            embeds: [
+              new MessageEmbed(embeds.owner).attachFiles(attachO),
+              new MessageEmbed(embeds.admin).attachFiles(attachA),
+              new MessageEmbed(embeds.coordinatore).attachFiles(attachC),
+              new MessageEmbed(embeds.supervisore).attachFiles(attachS),
+              new MessageEmbed(embeds.moderatore).attachFiles(attachM),
+              new MessageEmbed(embeds.staff).attachFiles(attachSt),
+              new MessageEmbed(embeds.eventMaster).attachFiles(attachEM),
+              new MessageEmbed(embeds.event).attachFiles(attachE)
+            ]
+          }))
           break;
 
         case prefix+'join':
           if(permissionLevel!=5)return (await message.reply("Tu non conosci questo comando")).then(msg=>eliminazioneMess(message,msg))
-          message.member.voiceChannel.join()
+          let connection = await message.member.voice.channel.join()
           .catch(err => console.log(err));
-          //let audio = connection.receiver.createStream(message.user, {mode: 'pcm'});
-          
+
+          connections[message.guild.id] = connection;
+
+          /*
           var grammar = '#JSGF V1.0; grammar parole; public <parola> = ciao | prova | test ;'
           let recognition = new SpeechRecognition()
           let speechRecognitionList = new SpeechGrammarList();
@@ -702,14 +892,14 @@ client.on('message', async (message) =>{
           recognition.interimResults = false;
           recognition.maxAlternatives = 1;
 
-          recognition.start();
+          recognition.start();*/
 /*
           recognition.onresult = function(event) {
             var comando = event.results[0][0].transcript
             console.log("Ecco cosa ho capito "+comando)
             message.channel.send("Questo è quello che ho capito: "+comando)
           }
-*/
+*//*
           recognition.onspeechend = function() {
             var result = recognition.stop();
             var comando = result.results[0][0].transcript
@@ -717,15 +907,35 @@ client.on('message', async (message) =>{
             console.log("Ecco cosa ho capito "+comando)
             message.channel.send("Questo è quello che ho capito: "+comando)
             message.guild.me.voice.channel.leave()
+          }*/
+
+          break;
+
+        case prefix+'vocalCmd':
+          if(!connections[message.guild.id])return;
+          if(!message.guild.me.voice)return;
+          if(!message.member.voice)return
+          vocalCmd(connections[message.guild.id]);
+          break;
+
+        case prefix+'leave':
+          if(!message.guild.me.voice)return;
+          message.guild.me.voice.channel.leave()
+          break;
+
+        case prefix+'speak':
+          if(permissionLevel!=5)return (await message.reply("Tu non conosci questo comando")).then(msg=>eliminazioneMess(message,msg))
+          if(!message.guild.me.voice)return;
+          try {
+            let connection = message.guild.me.voice.connection;
+            const dispatcher = connection.play("./audio/shinobu_speak.mp3");
+            dispatcher.on("finish", end => {message.guild.me.voice.channel.leave();});
+          } catch (error) {
+            console.log(error);
+            sayError(message)
           }
-
           break;
 
-        case prefix+'avatar':
-          if(!message.mentions.members.first())return (await message.reply(message.author.avatarURL({dynamic:true})).then(message.delete()));
-          message.channel.send(message.mentions.members.first().user.avatarURL({dynamic:true}));
-          message.delete()
-          break;
 
         case prefix+"emergency":
           if(message.author.id==bOwner) message.reply("override admin exec ordine numero 227\nI'll be back! -TK").then(msg => eliminazioneMess(message,msg))
@@ -738,22 +948,38 @@ client.on('message', async (message) =>{
             await message.channel.send("Inserire password")
             message.channel.awaitMessages(filter, {max:1, time:30000, errors:['time']})
             .then(collected => {
-              if(collected.first().content!="And Then Will There Be None? -U.N.Owen")return message.reply("Password errata, ordine annullato")
+              if(collected.first().content!="And Then Will There Be None? -U.N.Owen"){message.delete(); return message.reply("Password errata, ordine annullato")}
               collected.first().delete();
               message.channel.send("Operazione confermata!\nProcedura di disconnessione di emergenza attivata!\nElPsyCongroo!\nTHE END!")
-              client.destroy();
+              setTimeout(()=>
+              {
+                client.destroy();
+              }, 5000)
             })
             .catch(err => message.channel.send("Tempo scaduto, operazione annullata"))
 
-          }else if(argresult=='admin exec ordine #z05'){
+          }else if(argresult=='admin exec ordine #z90'){
 
             let filter = m => m.author.id==message.author.id;
             await message.channel.send("Inserire password")
             message.channel.awaitMessages(filter, {max:1, time:30000, errors:['time']})
-            .then(collected => {
-              if(collected.first().content!="I'll be back! -TK")return message.reply("Password errata, ordine annullato")
-              collected.first().delete();
-              message.channel.send("Operazione confermata!\nProcedura di uscita di emergenza attivata!\nElPsyCongroo!\nSayonara!")
+            .then(async collected => {
+              if(collected.first().content!="Full site lockdown initiated -Chief Franklin"){message.delete(); return message.reply("Password errata, ordine annullato")}
+              await collected.first().delete();
+              await message.channel.send("Operazione confermata!\nProcedura d'isolamento del codice principale di emergenza attivata!\nElPsyCongroo!\nSayonara!")
+              process.exit(1);
+            })
+            .catch(err => message.channel.send("Tempo scaduto, operazione annullata"))
+
+          }else if(argresult=='admin exec ordine #z09'){
+
+            let filter = m => m.author.id==message.author.id;
+            await message.channel.send("Inserire password")
+            message.channel.awaitMessages(filter, {max:1, time:30000, errors:['time']})
+            .then(async collected => {
+              if(collected.first().content!="I'll be back! -TK"){message.delete(); return message.reply("Password errata, ordine annullato")}
+              await collected.first().delete();
+              await message.channel.send("Operazione confermata!\nProcedura di uscita di emergenza attivata!\nElPsyCongroo!\nSayonara!")
               message.guild.leave();
             })
             .catch(err => message.channel.send("Tempo scaduto, operazione annullata"))
@@ -807,8 +1033,8 @@ client.on('message', async (message) =>{
                 message.reply("Modulo già disattivato");
               }
             }else if(argresult == "admin exec enable ticket"){
-              if(config.economy){
-                config.economy = false;
+              if(!config.ticket){
+                config.ticket = true;
                 message.reply("Modulo `ticket` attivato");
 
                 fs.writeFile('config.json', JSON.stringify(config), (err) => {
@@ -818,8 +1044,8 @@ client.on('message', async (message) =>{
                 message.reply("Modulo già attivato");
               }
             }else if(argresult == "admin exec disable ticket"){
-              if(config.economy){
-                config.economy = false;
+              if(config.ticket){
+                config.ticekt = false;
                 message.reply("Modulo `ticket` disattivato");
 
                 fs.writeFile('config.json', JSON.stringify(config), (err) => {
@@ -836,145 +1062,6 @@ client.on('message', async (message) =>{
           message.channel.send("Modulo `level` "+config.level+"\nModulo `economy` "+config.economy+"\nModulo `ticket` "+config.ticket)
           break;
 
-        case prefix+'restart':
-          if(message.author.id==bOwner){
-            message.channel.send("Restarting...").then(client.destroy()).then(client.login(token))
-          }
-          break;
-          
-        case prefix+'serverIcon':
-          message.channel.send(message.guild.iconURL({dynamic: true}));
-          break;
-
-        case prefix+'d':
-          let n = argresult;
-          if(n==""||n==" "||n<2)return message.reply("Nessun numero inserito o numero non valido").then(msg=>eliminazioneMess(message, msg));
-          message.channel.send(Math.floor(Math.random()*(n))+1);
-          break;
-
-        case prefix+'vmute'://comando per mutare un utente in vocale
-
-          if(permissionLevel > 1)//l'utente deve essere uno staffer
-          {
-            let membro = message.mentions.members.first();//variabile contenente l'omino taggato
-            if(!membro)//se l'omino taggato non esiste
-            {
-              message.reply("Devi taggare l'utente").then(msg=>
-               eliminazioneMess(message, msg))
-              return;
-            }
-
-            if(!membro.voice.channelID)//se l'omino taggato non è in vocale
-            {
-                message.reply("L'utente non è al momento connesso ad un canale vocale").then(msg=>
-                eliminazioneMess(message, msg))
-              return;
-            }
-
-            if(membro.voice.deaf==true && membro.voice.mute==true)//se l'omino taggato è già mutato
-            {
-              message.reply("L'utente è già mutato").then(msg=>
-                eliminazioneMess(message, msg))
-              return;
-            }
-
-            //mutazione
-            membro.setMute(true);
-            membro.setDeaf(true);
-
-            message.reply("Utente mutato con successo").then(msg=>//rispondone
-              eliminazioneMess(message, msg))
-
-            }else//se non è staffer
-            { 
-              return message.reply('Non hai i permessi necessari per eseguire questo comando');
-            }
-
-          break;
-
-        case prefix+'vunmute': 
-
-          if(permissionLevel > 1)
-          {
-            let membro = message.mentions.members.first();
-            if(!membro) 
-            {
-              message.reply("Hey, devi taggare qualcuno").then(msg=>
-                eliminazioneMess(message, msg))
-              return;
-            }
-
-            if(!membro.voiceChannelID)
-            {
-              message.reply("L'utente non è al momento connesso ad un canale vocale").then(msg=>
-                eliminazioneMess(message, msg))
-              return;
-            }
-
-            if(membro.deaf==false && membro.mute==false)
-            {
-              message.reply("Utente è già smutato").then(msg=>
-               eliminazioneMess(message, msg))
-              return;
-            }
-
-            membro.setMute(false);
-            membro.setDeaf(false);
-
-            message.reply("Utente smutato con successo").then(msg=>
-              eliminazioneMess(message, msg))
-          }else
-          {
-            return message.reply('Non hai i permessi necessari per eseguire questo comando');
-          }
-
-          break;
-
-        case prefix+'mute':
-
-          if(permissionLevel > 1)
-          {
-            let membro = message.mentions.members.first();
-            if(!membro) 
-            {
-              message.reply("Hey, devi taggare qualcuno").then(msg=>
-                eliminazioneMess(message, msg))
-              return;
-            } 
-
-            let tempo = argresult
-            if(!tempo || !ms(tempo))
-            {
-              tempo = -1;/*
-              message.reply("Devi specificare un tempo").then(msg=>
-                eliminazioneMess(message, msg))*/
-            }
-
-            ruolo = 'muted'
-            let muteRole = message.member.guild.roles.find(role => role.name === ruolo);
-
-            if(!mutRole)return message.reply("Ruolo muted non trovato").then(msg => eliminationMess(message, msg));
-
-            membro.addRole(muteRole)
-
-            if(tempo!=-1){
-              setTimeout(function(){
-                membro.removeRole(muteRole)
-                message.reply(`${membro} è stato smutato con successo`).then(msg => eliminazioneMess(message, msg))
-              }, ms(tempo))
-              message.reply(`${membro} è stato mutato con successo\nDurata: \`\`\``+tempo+`\`\`\``).then(msg=>
-                eliminazioneMess(message, msg))              
-            }else{
-              message.reply(`${membro} è stato mutato con successo\nDurata: \`\`\`indefinita\`\`\``).then(msg=>
-                eliminazioneMess(message, msg))  
-            }
-          }else
-          {
-            message.reply("Non hai il permesso per fare questo comando").then(msg=>
-              eliminazioneMess(message, msg))
-            return;
-          }
-          break;
             /*
         case prefix+'news':
           ruolo = "news";
@@ -1031,20 +1118,23 @@ client.on('message', async (message) =>{
             clearInterval(tagInterval);
           }, ms("1h"))
           break;
-          
-        case 'Non_Sono_UnB0t!':
-          if(message.channel.id != '642377846475718667')  return;
-          message.channel.replacePermissionOverwrites({
-            "overwrites": message.channel.permissionOverwrites.filter(o => o.id !== message.author.id)
-          });
-          message.author.send("Sei appena stato verificato, ricordati di seguire le regole");
+          */
+        case 'verificato':
+          if(message.channel.id != '791783839205818388')  return;
+          message.channel.createOverwrite(message.author.id,{}, "verify");
+          try{
+            message.author.send("Sei appena stato verificato, ricordati di seguire le regole");
+          }catch(err){
+            console.log("Impossibile inviare un messaggio privato per la verifica")
+          }
           message.delete();
-          
-          ruolo = message.member.guild.roles.find(role => role.name === 'unVerified');
-          message.member.removeRole(ruolo)
+
+          for (let i = 0; i < autoRoles.length; i++) {
+            message.member.roles.add(autoRoles[i]);
+          }
           
           break;
-          
+          /*
         case prefix + 'verify':
           if(permissionLevel<2) {
             message.channel.send("Solo lo staff può eseguire questo comando").then(msg => {
@@ -1095,47 +1185,32 @@ client.on('message', async (message) =>{
             });
           });
           break;*/
-        
-        case prefix + 'conv':
-          var x = argresult;
-          if(argresult == "help")return message.reply("Questo comando converte un numero in decimale in binario");
-          if(argresult == "") {
-            message.reply("Inserire un numero");
-            break;
-          }
-          if(isNaN(argresult)){
-	        message.reply("'"+ argresult +"'" +  " non è un numero, per favore inserire un numero");
-          }else{
-            x = +x;
-	          var binario = x.toString(2);
-            message.reply("il numero ''" + x + "'' in binario è '' " + binario + "''");
-          }
 
-          case prefix+'level':
-            if(!config.level) return;
-            utente = message.mentions.users.first();
-            if(!argresult) utente = message.author;
-            levelUp(message, utente);
-            break;
+        case prefix+'level':
+          if(!config.level) return;
+          utente = message.mentions.users.first();
+          if(!argresult) utente = message.author;
+          levelUp(message, utente);
+          break;
 
-          case prefix+'money':
-            if(!config.economy) return;
-            utente = message.mentions.users.first();
-            if(utente&&!eco[utente.id])return message.reply("L'utente non ha ancora un conto").then(msg=>eliminazioneMess(message,msg));
-            if(!utente) utente = message.author;
+        case prefix+'money':
+          if(!config.economy) return;
+          utente = message.mentions.users.first();
+          if(utente&&!eco[utente.id])return message.reply("L'utente non ha ancora un conto").then(msg=>eliminazioneMess(message,msg));
+          if(!utente) utente = message.author;
 
-            let moneyEmbed = new Discord.RichEmbed()
-              .setAuthor(utente.username, utente.displayAvatarURL({dynamic:true}))
-              .setColor('#2dc20c')
-              .addField("Pocket", currency+eco[utente.id].pocketMoney, true)
-              .addField("Bank", currency+eco[utente.id].bankMoney, true)
-              .addField("Totale", currency+(parseInt(eco[utente.id].pocketMoney)+parseInt(eco[utente.id].bankMoney)),true)
-              .setFooter(message.author.id)
-              message.channel.send(moneyEmbed).then(msg => {
-              msg.delete(20000)
-              message.delete(10000)
-            });
-            break;
+          let moneyEmbed = new Discord.MessageEmbed()
+            .setAuthor(utente.username, utente.displayAvatarURL({dynamic:true}))
+            .setColor('#2dc20c')
+            .addField("Pocket", currency+eco[utente.id].pocketMoney, true)
+            .addField("Bank", currency+eco[utente.id].bankMoney, true)
+            .addField("Totale", currency+(parseInt(eco[utente.id].pocketMoney)+parseInt(eco[utente.id].bankMoney)),true)
+            .setFooter(message.author.id)
+            message.channel.send(moneyEmbed).then(msg => {
+            msg.delete(20000)
+            message.delete(10000)
+          });
+          break;
 
           case prefix+'give-money':
             if(!config.economy) return;
@@ -1146,7 +1221,7 @@ client.on('message', async (message) =>{
             eco[message.author.id].pocketMoney-=parseInt(args[1]);
             eco[utente.id].pocketMoney+=parseInt(args[1]);
 
-            let gMoneyEmbed = new Discord.RichEmbed()
+            let gMoneyEmbed = new Discord.MessageEmbed()
               .setAuthor(message.author.username, message.author.displayAvatarURL({dynamic:true}))
               .setColor('#2dc20c')
               .addField("Soldi dati", args[1]+currency, false)
@@ -1192,7 +1267,7 @@ client.on('message', async (message) =>{
           case prefix+'allLevel':
             if(!config.level) return;
             if(message.author.id!=bOwner)
-            var levelEmbed = new Discord.RichEmbed()
+            var levelEmbed = new Discord.MessageEmbed()
               .setAuthor(client.user.username, client.user.displayAvatarURL({dynamic:true}))
             nextLv[1] = Math.floor(1*100*Math.PI);
             let s = "Level 1: "+Math.floor(1*100*Math.PI);
@@ -1246,6 +1321,7 @@ client.on('message', async (message) =>{
                 messCount.edit("Messaggi rimanenti: "+numMess)
               })
               .catch(err =>{
+                sayError(message)
                 message.channel.send("Errore: "+err);
                 clearInterval(spamInterval);
                 return;
@@ -1260,16 +1336,15 @@ client.on('message', async (message) =>{
             break;
 
           case prefix+'rick-astley':
-            message.channel.send("https://www.youtube.com/watch?v=TzXXHVhGXTQ");
+            message.channel.send("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
             break;
 
-          case prefix+'catgirl':
-            sendImage(message, "catgirl anime");
-            break;
-          case prefix+'image':
+          case prefix+"r34":
             if(!argresult)return message.reply("nessun argomento inserito").then(msg => eliminazioneMess(message, msg))
-            sendImage(message, argresult);
+            if(!message.channel.nsfw)return message.reply("comando disponibile solamente in stanze NSFW").then(msg => eliminazioneMess(message, msg))
+            sendNSFW(message, argresult);
             break;
+          
       }
   
   
@@ -1290,7 +1365,7 @@ client.on('message', async (message) =>{
             xp[message.author.id].level++;
             for(var key in lvRoles){
               if(key==xp[message.author.id].level){
-                message.member.addRole(message.guild.roles.cache.get(lvRoles[key]));
+                message.member.roles.add(message.guild.roles.cache.get(lvRoles[key]));
                 message.reply("Hai guadagnato un nuovo fantastico ruolo!");
               }
             }
@@ -1298,13 +1373,13 @@ client.on('message', async (message) =>{
             for (let i = 1; i <= xp[message.author.id].level; i++) {
               xpNec += nextLv[i.toString()];
             }
-            let lvlEmbed = new Discord.RichEmbed()
+            let lvlEmbed = new Discord.MessageEmbed()
               .setAuthor(message.author.username)
               .setColor('#82c394')
               .addField("Congratulazioni", "Sei appena salito di livello, ora sei al lv: "+xp[message.author.id].level, true)
               .setFooter(Math.floor(xpNec)-Math.floor(xp[message.author.id].xp)+" XP per il prossimo livello", message.author.displayAvatarURL({dynamic:true}));
               message.channel.send(lvlEmbed).then(msg => {
-                msg.delete(20000)
+                msg.delete({timeout:20000})
               });
           }
 
@@ -1346,22 +1421,23 @@ client.on('message', async (message) =>{
   
   catch(err){
     message.channel.send("Oh no!!! C'è stato un errore\n```"+err+'```')
+    console.log(err)
     sayError(message)
   }
 })
 
 
 
-client.on('error', (errore) => {
+client.on('error', async(errore) => {
   console.log(errore)
+  await client.users.fetch(bOwner).send("Errore non catchato\n"+errore)
   if(errore.discordAPIError) return client.user.lastMessage.channel.send(errore.discordAPIRError.method)
-  client.users.fetch(bOwner).send("Errore non catchato\n"+errore)
 })
 
 client.on('messageReactionAdd', async (reaction, utente) => {
   try{
     if(reaction.message.id==ticketMessage){
-      if(!ticket)return;
+      if(!config.ticket)return;
       let cancel = false;
 
       if(!ticket[utente.id]){
@@ -1370,11 +1446,15 @@ client.on('messageReactionAdd', async (reaction, utente) => {
         }
       }
 
-      if(ticketRecently[utente.id])return reaction.message.reply("Hai già creato un ticket di recente, aspetta almeno 1 ora tra un ticket e l'altro").then(msg=>eliminazioneMess(message,msg));
+      if(ticketRecently[utente.id])return reaction.message.channel.send("Hai già creato un ticket di recente, aspetta almeno 1 ora tra un ticket e l'altro").then(msg=>eliminazioneMess(message,msg));
 
-      if(parseInt(ticket[utente.id].nTickets)==3)return reaction.message.reply("Hai già raggiunto il limite massimo di support tickets(3)").then(msg=>eliminazioneMess(null,msg));
+      if(parseInt(ticket[utente.id].nTickets)==3)return reaction.message.channel.send("Hai già raggiunto il limite massimo di support tickets(3)").then(msg=>eliminazioneMess(null,msg));
 
-      let createTicketEmbed = new Discord.RichEmbed()
+      if(!utente.createDM()) {
+        return reaction.message.channel.send("Non posso scriverti in dm, impossibile proseguire con l'operazione");
+      }
+
+      let createTicketEmbed = new Discord.MessageEmbed()
         .setTitle("Creazione support ticket")
         .setDescription("Inserire l'oggetto del ticket")
         .setFooter("Dopo 60 secondi l'operazione verrà cancellata")
@@ -1383,7 +1463,7 @@ client.on('messageReactionAdd', async (reaction, utente) => {
 
       let filter = m => m.author.id==utente.id;
 
-      let ticketEmbed = new Discord.RichEmbed();
+      let ticketEmbed = new Discord.MessageEmbed();
       await dm.awaitMessages(filter, {max:1, time:60000, errors:['time']})
         .then(collected => ticketEmbed.setTitle(collected.first().content))
         .catch(err => function(){utente.send("Operazione annullata")
@@ -1450,7 +1530,7 @@ client.on('messageReactionAdd', async (reaction, utente) => {
         ticketRecently.delete(utente.id);
       },360000);
 
-      client.channels.cache.get(logChan).send(new Discord.RichEmbed()
+      client.channels.cache.get(logChan).send(new Discord.MessageEmbed()
       .setAuthor("Ticket "+s, client.user.displayAvatarURL({dynamic:true}))
       .setColor('#E1F512')
       .setDescription("Ticket richiesto da "+utente.tag)
@@ -1467,11 +1547,11 @@ client.on('messageReactionAdd', async (reaction, utente) => {
           deny: ['VIEW_CHANNEL']
         },
         {
-          id: "681825632891699227",
+          id: "537363618216280094",
           allow: ['VIEW_CHANNEL']
-        }]
+        }], reason: "support ticket"
       }).then(ch=> ch.send(ticketEmbed)
-        .then(async(msg) => {
+        .then(async (msg) => {
           await msg.react('✅')
           await msg.react('❎')
           filtro = (reaction, user) => {
@@ -1482,22 +1562,21 @@ client.on('messageReactionAdd', async (reaction, utente) => {
             /* await wait(1000)*/
             if(msg.reactions.cache.get('✅').count>1){
               utente.send("Ticket accettato")
-              ch.overwritePermissions([
+              ch.updateOverwrite(utente.id,
                 {
-                  id: utente.id,
-                  allow: ['SEND_MESSAGES']
-                }
-              ])
+                  SEND_MESSAGES: true
+                }, "support ticket"
+              )
               msg.reactions.cache.get('✅').remove()
               msg.reactions.cache.get('❎').remove()
 
               msg.channel.send("Ticket accettato da un membro della staff")
 
-              await client.channels.cache.get(logChan).send(new Discord.RichEmbed()
+              await client.channels.cache.get(logChan).send(new Discord.MessageEmbed()
               .setAuthor("Ticket "+s, client.user.displayAvatarURL({dynamic:true}))
               .setColor('#0CCB06')
-              .setDescription("Ticket aperto da (non ho voglia di scrivere da chi)")
-              .setFooter("User id: 42"))
+              .setDescription("Ticket aperto da "+utente.tag)
+              .setFooter("User id: "+utente.id, utente.displayAvatarURL({dynamic:true})))
 
               await msg.react('🔒')
               filtro = (reaction, user) => {
@@ -1510,17 +1589,16 @@ client.on('messageReactionAdd', async (reaction, utente) => {
                   if(err) message.channel.send(err)
                 });
 
-                ch.overwritePermissions([
+                ch.updateOverwrite(utente.id, 
                   {
-                    id: utente.id,
-                    deny: ['VIEW_CHANNEL']
-                  }
-                ])
+                    VIEW_CHANNEL: false
+                  }, "support ticket"
+                )
 
-                await msg.reactions.cache.get('🔒').remove()
-                ch.send(new Discord.RichEmbed()
+                await msg.reactions.cache.get('🔒').users.remove(client.user.id);
+                ch.send(new Discord.MessageEmbed()
                   .setTitle("Ticket chiuso")
-                  .setFooter("Ticket chiuso da "+msg.reactions.cache.get('🔒').users.first().username,msg.reactions.cache.get('🔒').users.first().displayAvatarURL({dynamic:true})))
+                  .setFooter("Ticket chiuso da "+(await msg.reactions.cache.get('🔒').users.fetch()).first().username,(await msg.reactions.cache.get('🔒').users.fetch()).first().displayAvatarURL({dynamic:true})))
                 .then(async msg=>{
                   await msg.react('🗑️')
                   deleteTicket(msg, false)
@@ -1532,25 +1610,26 @@ client.on('messageReactionAdd', async (reaction, utente) => {
                 fs.writeFile("./ticket.json", JSON.stringify(ticket), (err) => {
                   if(err) message.channel.send(err)
                 });
-                ch.overwritePermissions([
+                ch.updateOverwrite(utente.id,
                   {
-                    id: utente.id,
-                    deny: ['VIEW_CHANNEL']
-                  }
-                ])
-                ch.send(new Discord.RichEmbed()
+                    VIEW_CHANNEL: false
+                  }, "support ticket"
+                )
+                
+                ch.send(new Discord.MessageEmbed()
                 .setTitle("Ticket chiuso")
-                .setFooter("Ticket chiuso da "+msg.reactions.cache.get('🔒').users.first().username,msg.reactions.cache.get('🔒').users.first().displayAvatarURL({dynamic:true})))
+                .setFooter("Ticket chiuso da "+msg.reactions.cache.get('🔒').users.fetch().first().username, msg.reactions.cache.get('🔒').users.fetch().first().displayAvatarURL({dynamic:true})))
                 .then(async msg=>{
-                  await msg.react('🗑️')
+                  await msg.react('🗑️');
                   deleteTicket(msg, true)
                 })
               })
+              msg.reactions.removeAll();
             }
             
             else if(msg.reactions.cache.get('❎').count>1){
-              msg.reactions.cache.get('✅').remove()
-              msg.reactions.cache.get('❎').remove()
+              await msg.reactions.cache.get('✅').users.remove(client.user.id)
+              await msg.reactions.cache.get('❎').users.remove(client.user.id)
               rejectTicket(msg, utente, ch)
             }
             })
@@ -1561,7 +1640,7 @@ client.on('messageReactionAdd', async (reaction, utente) => {
           })
         )
 
-      reaction.remove(utente);
+      reaction.users.remove(utente);
 
       fs.writeFile("./ticket.json", JSON.stringify(ticket), (err) => {
         if(err) message.channel.send(err)
@@ -1569,21 +1648,25 @@ client.on('messageReactionAdd', async (reaction, utente) => {
     }
   }catch(err){
     console.log(err);
+    reaction.message.channel.send("Errore, potresti aver bloccato i messagi diretti").then(msg => eliminazioneMess(null, msg))
   }
 })
 
-/*client.on('guildMemberAdd', (membro) => {
-  
+client.on('guildMemberAdd', async membro => {
   //VERIFICA ANTI-BOT
-  const filter = (reaction, user) => reaction.emoji.name === "Gnam" && user.id === membro.id;
-  var stanza = client.channels.get('642377846475718667');
-  
+  //const filter = (reaction, user) => reaction.emoji.name === "Gnam" && user.id === membro.id;
+  client.channels.fetch('791783839205818388')
+  .then(stanza =>{
+    stanza.createOverwrite(membro.user, {
+      VIEW_CHANNEL: true
+    }, "verify")
+  });
+  /*
   let ruolo = membro.guild.roles.find(role => role.name === 'unVerified');
-  membro.addRole(ruolo);
+  membro.addRole(ruolo);*/
   
-  stanza.overwritePermissions(membro, {
-    VIEW_CHANNEL: true
-  })
+
+  /*
   membro.send("Benvenuto nel server, sei pregato di leggere le <#594960848322166820> e verificarti in <#642377846475718667> (hai 1 ora per farlo)");
   stanza.fetchMessage('642417746587549716')
     .then(message => message.awaitReactions(filter, { max: 1, time: 3600000, errors: ['time'] }))
@@ -1596,8 +1679,11 @@ client.on('messageReactionAdd', async (reaction, utente) => {
       .catch(collected => {
         membro.send("Tempo scaduto, per verificarti ora dovrai contattare uno staffer")
         client.channels.get('594960958342823946').send("L'utente <@" + membro.id + "> non si è verificato, un membro dello staff deve verificarlo manualmente col comando /verify (@utente)");
-      })
-})*/
+      })*/
+})
+
+
+
 client.on('guildCreate', guild => {
   let SendChannel = guild.systemChannel
   if(!SendChannel) SendChannel = guild.channels.cache.find("name", "general") || guild.channels.cache.find("name", "chat") || guild.channels.cache.find("name", "generale") || guild.channels.cache.find("name", "lobby");
@@ -1612,21 +1698,23 @@ client.on('guildCreate', guild => {
     })
   }
 })
-/*
 
-client.on('voiceStateUpdate', (oldMembro, newMembro) => {
-  let ruolo = newMembro.guild.roles.find(role => role.name === 'vocal')
+
+
+client.on('voiceStateUpdate', (oldState, newState) => {
+  if(newState.member.id == client.user.id&&newState.channel == null)client.channels.fetch("801567050811179068");
+  /*let ruolo = newMembro.guild.roles.find(role => role.name === 'vocal')
 
   if(newMembro.voiceChannel!=undefined && oldMembro.voiceChannel === undefined) {
     newMembro.addRole(ruolo);
   } else if(newMembro.voiceChannel === undefined && oldMembro.voiceChannel != undefined) {
     newMembro.removeRole(ruolo);
-  }
+  }*/
   
   
 })
 
-*/
+
 
 
 
